@@ -1,0 +1,32 @@
+.venv/
+venv/
+.deps/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Experiment outputs. Metrics JSON is small and worth committing selectively;
+# captured tensors and figures are not.
+results/**/*.pt
+results/**/*.npz
+results/**/*.pdf
+logs/
+
+# HuggingFace caches must live on course storage, never in the repo.
+hf_cache/
+datasets_cache/
+
+.DS_Store
+.env
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg
+paper/*.synctex.gz
+
+# Editor/tooling caches
+.pytest_cache/
+.ruff_cache/

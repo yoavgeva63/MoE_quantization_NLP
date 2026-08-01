@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "moequant"
+version = "0.1.0"
+description = "Mixed-precision post-training quantization for Mixture-of-Experts routers"
+requires-python = ">=3.10"
+
+# Versions are pinned deliberately. transformers 5.x fuses MoE experts into 3D
+# parameter stacks, which changes module naming and breaks the nn.Linear-based
+# quantization walkers. scripts/inspect_model.py re-checks the layout at runtime.
+dependencies = [
+    "torch>=2.6.0,<2.10.0",
+    # Upper bound is deliberate. Our policies target modules through FqnToConfig's
+    # `_default` key, which torchao has deprecated (pytorch/ao#3229) and will remove.
+    # Validated against 0.17.0; revisit before loosening this.
+    "torchao>=0.14.0,<0.18.0",
+    "transformers>=4.46.0,<5.0.0",
+    "accelerate>=1.0.0",
+    "datasets>=3.0.0",
+    "safetensors>=0.4.5",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+    "tqdm>=4.66",
+    "matplotlib>=3.8",
+    "sentencepiece>=0.2.0",
+]
+
+[project.optional-dependencies]
+# Only needed for the bitsandbytes cross-check run; requires CUDA compute capability 7.5+.
+bnb = ["bitsandbytes>=0.44.0"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The repo root is needed for `from tests.conftest import ...`; without it the bare
+# `pytest` console script fails where `python -m pytest` happens to work.
+pythonpath = [".", "src"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

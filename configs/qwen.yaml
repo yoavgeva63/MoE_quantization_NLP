@@ -1,0 +1,24 @@
+# Qwen1.5-MoE-A2.7B: second architecture.
+# 14.3B total / 2.7B active, 24 layers, 60 experts, top-4, plus a shared expert whose
+# own gate is protected under `mixed`. ~28GB in BF16, so gold needs a 40GB card or
+# device_map sharding across two.
+
+model_key: qwen
+dtype: bfloat16
+device: cuda
+
+corpus: wikitext2
+ppl_seq_len: 1024
+ppl_stride: 1024
+max_ppl_windows: null
+
+routing_sequences: 128
+routing_seq_len: 256
+
+capture_inputs: true
+input_stride: 8
+
+seed: 42
+n_boot: 200
+
+results_dir: results

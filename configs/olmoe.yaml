@@ -1,0 +1,23 @@
+# OLMoE-1B-7B: primary model.
+# 6.9B total / 1.3B active, 16 layers, 64 experts, top-8, clean nn.Linear router.
+# ~14GB in BF16, so gold fits on a single 24GB card.
+
+model_key: olmoe
+dtype: bfloat16
+device: cuda
+
+corpus: wikitext2
+ppl_seq_len: 1024
+ppl_stride: 1024        # non-overlapping windows; every token scored exactly once
+max_ppl_windows: null
+
+routing_sequences: 128
+routing_seq_len: 256    # 32768 routing decisions per layer
+
+capture_inputs: true
+input_stride: 8         # keep every 8th token's activations for the Part 2 decomposition
+
+seed: 42
+n_boot: 200
+
+results_dir: results
