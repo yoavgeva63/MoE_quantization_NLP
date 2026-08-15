@@ -1,7 +1,9 @@
 # Qwen1.5-MoE-A2.7B: second architecture.
-# 14.3B total / 2.7B active, 24 layers, 60 experts, top-4, plus a shared expert whose
-# own gate is protected under `mixed`. ~28GB in BF16, so gold needs a 40GB card or
-# device_map sharding across two.
+# 14.3B total / 2.7B active, 24 layers, 60 experts, top-4, plus a shared expert. That
+# expert's gate is quantized like everything else: it is a scalar mixing weight, not a
+# choice among experts, so protecting it would make `mixed` mean something broader here
+# than on OLMoE. See registry.py. ~28.6GB in BF16, which device_map shards across five
+# RTX 2080 Ti.
 
 model_key: qwen
 dtype: bfloat16
