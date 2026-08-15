@@ -92,6 +92,12 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001 - a sweep should report, not vanish
             failures.append(f"{label}: {type(exc).__name__}: {exc}")
             traceback.print_exc()
+            # Every candidate is scored against gold, so without it the rest can only fail
+            # for want of artifacts. --keep-going should not turn one real error into a
+            # screenful of misleading ones that bury it.
+            if policy == "gold":
+                print("\nGold failed; every other policy is scored against it. Stopping.")
+                return 1
             if not args.keep_going:
                 print(f"\nStopping after failure in {label}. Use --keep-going to continue.")
                 return 1

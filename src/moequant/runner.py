@@ -86,6 +86,79 @@ def _meta_skeleton(cfg: ExperimentConfig, spec):
         )
 
 
+def _reset_memory_stats(device: str) -> None:
+    """Zero the peak counters so a reported maximum belongs to this run alone.
+
+    A sweep runs every policy in one process, so without this the second run inherits the
+    first run's peak. The reset only has anything to do from the second run onwards:
+    ``reset_peak_memory_stats`` reaches straight into the caching allocator without a lazy
+    init, so on a device that has not allocated yet it raises instead of reporting zero.
+    Nothing here is worth failing a run over, hence the swallowed exception.
+    """
+    if device != "cuda" or not torch.cuda.is_available():
+        return
+    for index in range(torch.cuda.device_count()):
+        try:
+            torch.cuda.reset_peak_memory_stats(index)
+        except Exception:  # noqa: BLE001 - allocator not up yet; peak is already zero
+            pass
+
+
+def _memory_report(model, device: str) -> dict:
+    """Peak VRAM per device, and where accelerate actually put each submodule.
+
+    ``device_map="auto"`` spills to CPU or disk when the GPUs are too small. That does not
+    fail the run and does not change the numbers, but it does change what the timings mean
+    and it quietly falsifies any claim that the model fits on N cards. Recording placement
+    and peak usage puts the evidence in the results rather than in someone's recollection
+    of a job that has since scrolled away.
+    """
+    report: dict = {"device_map": None, "offloaded_modules": [], "per_device": []}
+
+    device_map = getattr(model, "hf_device_map", None)
+    if device_map:
+        report["device_map"] = dict(device_map)
+        report["offloaded_modules"] = sorted(
+            fqn for fqn, dev in device_map.items() if str(dev) in ("cpu", "disk")
+        )
+
+    if device == "cuda" and torch.cuda.is_available():
+        for index in range(torch.cuda.device_count()):
+            try:
+                props = torch.cuda.get_device_properties(index)
+                entry = {
+                    "index": index,
+                    "name": props.name,
+                    "peak_allocated_gb": torch.cuda.max_memory_allocated(index) / 1024**3,
+                    "peak_reserved_gb": torch.cuda.max_memory_reserved(index) / 1024**3,
+                    "total_gb": props.total_memory / 1024**3,
+                }
+            except Exception as exc:  # noqa: BLE001 - a diagnostic must not fail a run
+                entry = {"index": index, "error": f"{type(exc).__name__}: {exc}"}
+            report["per_device"].append(entry)
+        report["peak_allocated_gb"] = sum(
+            d.get("peak_allocated_gb", 0.0) for d in report["per_device"]
+        )
+
+    return report
+
+
+def _print_memory(report: dict) -> None:
+    for entry in report["per_device"]:
+        if "error" in entry:
+            print(f"  cuda:{entry['index']} memory stats unavailable ({entry['error']})")
+            continue
+        print(
+            f"  cuda:{entry['index']} peak {entry['peak_allocated_gb']:.2f} GB allocated / "
+            f"{entry['peak_reserved_gb']:.2f} GB reserved of {entry['total_gb']:.1f} GB"
+        )
+    if report["offloaded_modules"]:
+        print(
+            f"  WARNING: {len(report['offloaded_modules'])} modules were offloaded off-GPU, "
+            f"e.g. {report['offloaded_modules'][:3]}"
+        )
+
+
 def _check_alignment(gold: dict, routing, topology: dict, cfg: ExperimentConfig) -> None:
     """Refuse to compare a candidate against a gold run that saw different tokens.
 
@@ -143,6 +216,7 @@ def run(cfg: ExperimentConfig, progress: bool = True) -> dict:
     quant_config = to_torchao_config(policy, module_fqns)
 
     print(f"[{cfg.model_key}/{cfg.run_name}] {policy.describe()}")
+    _reset_memory_stats(device)
     model, tokenizer = load_model(cfg, spec, quant_config)
 
     # -- correctness gates, before anything expensive is computed --------------------
@@ -204,10 +278,15 @@ def run(cfg: ExperimentConfig, progress: bool = True) -> dict:
         progress=progress,
     )
 
+    # Read after the heaviest work, so the peak covers loading, capture and evaluation.
+    memory = _memory_report(model, device)
+    _print_memory(memory)
+
     # -- comparison against gold -------------------------------------------------------
     result: dict = {
         "config": cfg.to_dict(),
         "environment": environment(),
+        "memory": memory,
         "model_id": spec.model_id,
         "policy": policy.name,
         "bits": policy.bits,

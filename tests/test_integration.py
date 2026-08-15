@@ -20,7 +20,7 @@ from moequant.config import ExperimentConfig, environment
 from moequant.metrics import compare_routing
 from moequant.quantize import build_policy
 from moequant.registry import parameter_census, resolve_topology
-from moequant.runner import _json_default
+from moequant.runner import _json_default, _memory_report, _print_memory, _reset_memory_stats
 from moequant.verify import audit
 from tests.conftest import TinyMoE
 from tests.test_verify import fake_quantize_module
@@ -182,3 +182,24 @@ def test_environment_records_versions():
     assert env["torch"]
     assert "python" in env
     assert "cuda_available" in env
+
+
+def test_memory_instrumentation_never_raises():
+    """A diagnostic must not be able to fail a run.
+
+    `reset_peak_memory_stats` bypasses lazy init and throws on a device whose allocator is
+    not up yet, which killed a whole sweep once: gold died before loading and the other six
+    runs then failed for want of gold artifacts.
+    """
+    model = torch.nn.Linear(4, 4)
+    for device in ("cpu", "cuda"):
+        _reset_memory_stats(device)
+        report = _memory_report(model, device)
+        _print_memory(report)
+        assert set(report) >= {"device_map", "offloaded_modules", "per_device"}
+
+
+def test_memory_report_is_json_serialisable():
+    """It lands in metrics.json, so it has to survive the same encoder as everything else."""
+    report = _memory_report(torch.nn.Linear(4, 4), "cpu")
+    assert json.loads(json.dumps(report, default=_json_default)) is not None
