@@ -16,7 +16,7 @@ import traceback
 
 from moequant.config import ExperimentConfig
 from moequant.quantize import POLICIES, SUPPORTED_BITS
-from moequant.runner import run
+from moequant.runner import METRICS, run
 
 
 def main() -> int:
@@ -44,6 +44,15 @@ def main() -> int:
         action="store_true",
         help="Continue the sweep after a failure instead of stopping",
     )
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help=(
+            "Skip runs that already wrote metrics.json. On a preemptible partition Slurm "
+            "restarts a requeued job from the top, so without this the sweep repeats work "
+            "it has already finished."
+        ),
+    )
     parser.add_argument("--quiet", action="store_true")
     args = parser.parse_args()
 
@@ -67,9 +76,16 @@ def main() -> int:
             jobs.append((policy, bits))
 
     failures: list[str] = []
+    skipped = 0
     for policy, bits in jobs:
         cfg = ExperimentConfig.from_yaml(args.config, policy=policy, bits=bits, **overrides)
         label = f"{cfg.model_key}/{cfg.run_name}"
+        # metrics.json is written after every artifact, so its presence means this run
+        # finished rather than died part-way.
+        if args.skip_existing and (cfg.run_dir / METRICS).exists():
+            print(f"\n{label}: already complete, skipping")
+            skipped += 1
+            continue
         print(f"\n{'=' * 70}\n{label}\n{'=' * 70}")
         try:
             run(cfg, progress=not args.quiet)
@@ -86,7 +102,8 @@ def main() -> int:
             print(f"  - {line}")
         return 1
 
-    print(f"\nAll {len(jobs)} runs completed.")
+    tail = f" ({skipped} already complete)" if skipped else ""
+    print(f"\nAll {len(jobs)} runs completed{tail}.")
     return 0
 
 

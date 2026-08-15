@@ -38,14 +38,34 @@ def _model():
     return TinyMoE(TinyConfig(hidden=64, num_experts=8, layers=2))
 
 
+def _module_fqns(model):
+    return tuple(fqn for fqn, _ in model.named_modules() if fqn)
+
+
 def _quantized(model, spec, policy_name, bits):
     """Apply a policy through the genuine torchao path."""
     model = copy.deepcopy(model)
     policy = build_policy(policy_name, spec, bits)
-    config = to_torchao_config(policy)
+    config = to_torchao_config(policy, _module_fqns(model))
     # FqnToConfig carries its own targeting, so torchao requires filter_fn=None.
     quantize_(model, config.quant_type, filter_fn=None)
     return model, policy
+
+
+def _resolve_as_transformers_would(config, module_fqn):
+    """Reproduce how ``TorchAoHfQuantizer`` picks a config for one module.
+
+    Production loads through ``from_pretrained(quantization_config=...)``, which never
+    calls ``quantize_``. It quantizes each parameter during loading and resolves the
+    mapping with an exact dict lookup, falling back to ``_default``. Everything else in
+    this file goes through ``quantize_``, which is more forgiving: it also understands
+    ``re:`` patterns. That divergence let a config that looked correct here quantize all
+    16 OLMoE routers under the ``mixed`` policy on the cluster.
+    """
+    mapping = config.quant_type.module_fqn_to_config
+    if module_fqn in mapping:
+        return mapping[module_fqn]
+    return mapping.get("_default")
 
 
 # -- policy targeting ------------------------------------------------------------------
@@ -90,6 +110,57 @@ def test_embeddings_and_head_are_never_quantized(tiny_spec):
     model, _ = _quantized(_model(), tiny_spec, "uniform", 4)
     assert not verify.is_quantized(model.lm_head.weight)
     assert not verify.is_quantized(model.model.embed_tokens.weight)
+
+
+# -- the transformers loading path -------------------------------------------------------
+
+
+def test_config_carries_no_regex_keys(tiny_spec):
+    """Every key must be an exact FQN, because the loader cannot resolve anything else."""
+    model = _model()
+    for policy_name in ("uniform", "mixed"):
+        config = to_torchao_config(build_policy(policy_name, tiny_spec, 4), _module_fqns(model))
+        keys = list(config.quant_type.module_fqn_to_config)
+        assert not [k for k in keys if k.startswith("re:")], keys
+
+
+def test_loader_resolution_spares_routers_under_mixed(tiny_spec):
+    """The gate that actually failed on the cluster, at the level it failed."""
+    model = _model()
+    fqns = _module_fqns(model)
+    config = to_torchao_config(build_policy("mixed", tiny_spec, 4), fqns)
+
+    routers = [f for f in fqns if tiny_spec.is_router(f)]
+    assert routers, "the tiny model must expose routers for this to mean anything"
+    for fqn in routers:
+        assert _resolve_as_transformers_would(config, fqn) is None, fqn
+
+
+def test_loader_resolution_quantizes_routers_under_uniform(tiny_spec):
+    """The negative baseline must stay a real baseline under the same resolution."""
+    model = _model()
+    fqns = _module_fqns(model)
+    config = to_torchao_config(build_policy("uniform", tiny_spec, 4), fqns)
+
+    for fqn in [f for f in fqns if tiny_spec.is_router(f)]:
+        assert _resolve_as_transformers_would(config, fqn) is not None, fqn
+
+
+def test_loader_resolution_spares_embeddings_and_head(tiny_spec):
+    """ALWAYS_SKIP is worthless if the loader cannot see it."""
+    model = _model()
+    fqns = _module_fqns(model)
+    config = to_torchao_config(build_policy("uniform", tiny_spec, 4), fqns)
+
+    for fqn in ("model.embed_tokens", "lm_head"):
+        assert fqn in fqns
+        assert _resolve_as_transformers_would(config, fqn) is None, fqn
+
+
+def test_expanding_patterns_needs_module_names(tiny_spec):
+    """Failing loudly beats silently quantizing everything."""
+    with pytest.raises(ValueError, match="module FQNs"):
+        to_torchao_config(build_policy("mixed", tiny_spec, 4))
 
 
 # -- bit-width evidence ------------------------------------------------------------------

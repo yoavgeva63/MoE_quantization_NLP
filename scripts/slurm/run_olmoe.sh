@@ -5,6 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=12:00:00
+#SBATCH --requeue
+#SBATCH --open-mode=append
 #SBATCH --output=logs/olmoe_%j.out
 #SBATCH --error=logs/olmoe_%j.err
 
@@ -30,10 +32,14 @@ source scripts/slurm/_preflight.sh
 # Confirm the registry still matches the checkpoint before spending GPU hours.
 "${PY_BIN}" scripts/inspect_model.py olmoe --out results/olmoe/architecture.json
 
+# studentkillable preempts with PreemptMode=REQUEUE and GraceTime=0: a job can be killed
+# without warning and restarted from the first line. --skip-existing makes that restart
+# resume, since each finished run has already written its metrics.json.
 "${PY_BIN}" scripts/run.py \
     --config configs/olmoe.yaml \
     --policies gold uniform mixed \
     --bits 8 4 3 \
-    --keep-going
+    --keep-going \
+    --skip-existing
 
 "${PY_BIN}" scripts/analyze.py --results-dir results/olmoe

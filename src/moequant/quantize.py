@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import re
 from collections import OrderedDict
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import torch
@@ -103,7 +104,30 @@ def build_policy(
     return QuantPolicy(name=name, bits=bits, skip_patterns=skip, skip_exact=exact)
 
 
-def to_torchao_config(policy: QuantPolicy):
+def resolve_skips(policy: QuantPolicy, module_fqns: Sequence[str] = ()) -> tuple[str, ...]:
+    """Materialise the policy's regex skips into the exact module FQNs they match.
+
+    This indirection is not cosmetic. ``transformers`` does not hand the config to
+    torchao's ``quantize_``; its ``TorchAoHfQuantizer`` quantizes each parameter as it is
+    loaded and resolves the mapping with a plain dict lookup on the module FQN. A ``re:``
+    key therefore never matches, and every module falls through to ``_default`` while the
+    load reports success. torchao's own ``quantize_`` *does* honour ``re:``, which is why
+    this only surfaces on a real checkpoint. Exact FQNs are understood by both paths.
+    """
+    skips = list(policy.skip_exact)
+    if policy.skip_patterns:
+        if not module_fqns:
+            raise ValueError(
+                f"Policy {policy.name!r} skips modules by pattern, so it needs the model's "
+                "module FQNs to expand them. Pass module_fqns=... (enumerate them from a "
+                "meta-device skeleton so no weights are materialised)."
+            )
+        compiled = [re.compile(p) for p in policy.skip_patterns]
+        skips += [fqn for fqn in module_fqns if any(c.fullmatch(fqn) for c in compiled)]
+    return tuple(dict.fromkeys(skips))
+
+
+def to_torchao_config(policy: QuantPolicy, module_fqns: Sequence[str] = ()):
     """Turn a policy into a ``transformers`` quantization_config, or None for gold."""
     if policy.is_gold:
         return None
@@ -126,11 +150,8 @@ def to_torchao_config(policy: QuantPolicy):
     )
 
     mapping: OrderedDict[str, object | None] = OrderedDict()
-    # Exact FQNs outrank regexes in torchao's precedence order, so they go first.
-    for fqn in policy.skip_exact:
+    for fqn in resolve_skips(policy, module_fqns):
         mapping[fqn] = None
-    for pattern in policy.skip_patterns:
-        mapping[f"re:{pattern}"] = None
     mapping["_default"] = base
 
     return TorchAoConfig(quant_type=FqnToConfig(mapping))

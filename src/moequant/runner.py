@@ -68,8 +68,12 @@ def load_model(cfg: ExperimentConfig, spec, quant_config):
     return model, tokenizer
 
 
-def _build_placebo(cfg: ExperimentConfig, spec) -> tuple[str, ...]:
-    """Enumerate module names on a meta device so we never materialise weights twice."""
+def _meta_skeleton(cfg: ExperimentConfig, spec):
+    """Instantiate the architecture on the meta device, so no weights are materialised.
+
+    Downloads the config only. Used to learn module names before the real load, which the
+    quantization policy needs in order to expand its skip patterns into exact FQNs.
+    """
     from accelerate import init_empty_weights
     from transformers import AutoConfig, AutoModelForCausalLM
 
@@ -77,10 +81,9 @@ def _build_placebo(cfg: ExperimentConfig, spec) -> tuple[str, ...]:
         spec.model_id, trust_remote_code=spec.trust_remote_code, cache_dir=cfg.cache_dir
     )
     with init_empty_weights():
-        skeleton = AutoModelForCausalLM.from_config(
+        return AutoModelForCausalLM.from_config(
             hf_config, trust_remote_code=spec.trust_remote_code
         )
-    return sample_placebo_modules(skeleton, spec, seed=cfg.placebo_seed)
 
 
 def _check_alignment(gold: dict, routing, topology: dict, cfg: ExperimentConfig) -> None:
@@ -125,9 +128,19 @@ def run(cfg: ExperimentConfig, progress: bool = True) -> dict:
             f"Run the gold policy for {cfg.model_key} first - every metric is relative to it."
         )
 
-    placebo = _build_placebo(cfg, spec) if cfg.policy == "placebo" else ()
+    # A quantized policy targets modules by exact FQN, so the names have to be known
+    # before the real load. One meta-device skeleton serves both that and the placebo draw.
+    placebo: tuple[str, ...] = ()
+    module_fqns: tuple[str, ...] = ()
+    if not is_gold:
+        skeleton = _meta_skeleton(cfg, spec)
+        module_fqns = tuple(fqn for fqn, _ in skeleton.named_modules() if fqn)
+        if cfg.policy == "placebo":
+            placebo = sample_placebo_modules(skeleton, spec, seed=cfg.placebo_seed)
+        del skeleton
+
     policy = build_policy(cfg.policy, spec, cfg.bits, placebo_modules=placebo)
-    quant_config = to_torchao_config(policy)
+    quant_config = to_torchao_config(policy, module_fqns)
 
     print(f"[{cfg.model_key}/{cfg.run_name}] {policy.describe()}")
     model, tokenizer = load_model(cfg, spec, quant_config)

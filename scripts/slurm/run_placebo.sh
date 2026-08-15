@@ -5,6 +5,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=8:00:00
+#SBATCH --requeue
+#SBATCH --open-mode=append
 #SBATCH --output=logs/placebo_%j.out
 #SBATCH --error=logs/placebo_%j.err
 
@@ -41,6 +43,7 @@ fi
     --config "configs/${MODEL}.yaml" \
     --policies placebo \
     --bits 4 3 \
-    --keep-going
+    --keep-going \
+    --skip-existing
 
 "${PY_BIN}" scripts/analyze.py --results-dir "results/${MODEL}"
