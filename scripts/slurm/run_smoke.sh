@@ -25,12 +25,25 @@ cd "${MOEQUANT_REPO:-${SLURM_SUBMIT_DIR:-$(dirname "$0")/../..}}"
 
 #   sbatch scripts/slurm/run_smoke.sh olmoe        # INT4 only, the quickest check
 #   sbatch scripts/slurm/run_smoke.sh olmoe 8 4 3  # prove every bit-width the sweep uses
+#
+# Qwen is roughly twice OLMoE's size and needs the real sweep's allocation. The #SBATCH
+# directives above are read before this script runs, so they cannot depend on "$1"; pass
+# the override on the command line, where it takes precedence:
+#
+#   sbatch --gres=gpu:geforce_rtx_2080:5 --mem=96G scripts/slurm/run_smoke.sh qwen
+#
+# Forgetting the override is not silent: the VRAM floor below makes the preflight refuse
+# the job up front rather than let it OOM partway through the gold run.
 MODEL="${1:-olmoe}"
 shift || true
 BITS=("$@")
 [[ ${#BITS[@]} -eq 0 ]] && BITS=(4)
 
-export MOEQUANT_MIN_VRAM_GB=20
+# Match each model's real sweep: run_olmoe.sh asks for 20, run_qwen.sh for 40.
+case "${MODEL}" in
+    qwen) export MOEQUANT_MIN_VRAM_GB=40 ;;
+    *) export MOEQUANT_MIN_VRAM_GB=20 ;;
+esac
 
 # shellcheck disable=SC1091
 source scripts/slurm/_preflight.sh
