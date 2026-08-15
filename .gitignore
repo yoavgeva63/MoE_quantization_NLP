@@ -14,6 +14,10 @@ results/**/*.npz
 results/**/*.pdf
 logs/
 
+# Smoke output is throwaway by construction: reduced routing and perplexity budgets, so
+# the numbers are directional only and must never be mistaken for a real sweep.
+results/smoke/
+
 # HuggingFace caches must live on course storage, never in the repo.
 hf_cache/
 datasets_cache/
