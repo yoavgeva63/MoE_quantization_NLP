@@ -47,39 +47,68 @@ only remaining variable is the real checkpoints.
 
 ## GPU requirements
 
-The lab workstation's GTX TITAN X cards are compute capability 5.2. They **cannot** run
-this: BF16 is not native below Ampere, and LLM.int8() needs 7.5+. Everything runs on the
-TAU Slurm cluster.
+The lab workstation's TITAN Xp cards are compute capability 6.1. They **cannot** run this:
+the torch wheel ships kernels for sm_70 and up, so a TITAN Xp loads, reports
+`cuda.is_available() == True`, and then dies on the first kernel launch. Do not trust
+`torch.cuda.is_bf16_supported()` either — it returns `True` on these cards. Everything runs
+on the TAU Slurm cluster.
 
-| Model | BF16 gold | Minimum GPU |
-|-------|-----------|-------------|
-| OLMoE-1B-7B | ~14 GB | one 24 GB card |
-| Qwen1.5-MoE-A2.7B | ~28 GB | one 40 GB card, or two with `device_map="auto"` |
+A student account is limited to the `studentkillable` partition, whose only usable card is
+the **RTX 2080 Ti (11 GB, sm_75)**; the TITAN Xp nodes on that same partition are dead
+weight for us. Since nothing there is large enough to hold a model on its own, every job
+shards across several cards through `device_map="auto"`, and every job pins the GPU type:
+
+| Model | BF16 gold | What to request |
+|-------|-----------|-----------------|
+| OLMoE-1B-7B | ~14 GB | `--gres=gpu:geforce_rtx_2080:3` |
+| Qwen1.5-MoE-A2.7B | ~28 GB | `--gres=gpu:geforce_rtx_2080:5` |
+
+Switching to `dtype: float16` does not reduce this; both are two bytes per parameter.
+
+`_preflight.sh` enforces both constraints before any GPU work: it aborts if any allocated
+card is below the wheel's minimum architecture, and if the total VRAM is under
+`MOEQUANT_MIN_VRAM_GB`, which each job script sets. The larger partitions (`killable`, with
+a5000/3090/l40s/a6000) need a separate Slurm association; if you get one, drop the GPU-type
+pin and go back to a single card.
 
 ## Cluster setup (once)
+
+**The repo must live on `/home/morg`.** The lab workstation's home directory is a local
+disk that shadows a different NFS home mounted by the compute nodes, so a repo cloned into
+`~` is invisible to every job. `/home/morg/NLP_2526b/$USER` is the one path both machines
+see, and it is where the caches and the venv belong anyway.
 
 ```bash
 # 1. Fill the Slurm access form, listing "NLP class 2025/2026" as PI/lab:
 #    https://www.cs.tau.ac.il/system/SlurmRequestForm
 
-# 2. Point every cache at course storage. The home quota will not hold these models.
+# 2. Everything lives in course storage; the home quota will not hold these models.
 export STORAGE=/home/morg/NLP_2526b/$USER
 export HF_HOME=$STORAGE/hf_cache
 export HF_DATASETS_CACHE=$STORAGE/datasets_cache
-mkdir -p "$HF_HOME" "$HF_DATASETS_CACHE" logs
+export PIP_CACHE_DIR=$STORAGE/pip_cache
+mkdir -p "$HF_HOME" "$HF_DATASETS_CACHE" "$PIP_CACHE_DIR"
+cd "$STORAGE/MoE_quantization_NLP" && mkdir -p logs
 
-# 3. Install into a venv inside the repo
-python -m venv .venv && source .venv/bin/activate
+# 3. Create the venv. `python3 -m venv` fails on these hosts — ensurepip is not
+#    installed — so bootstrap virtualenv into storage and use that instead.
+pip install --target "$STORAGE/.tools" virtualenv
+PYTHONPATH="$STORAGE/.tools" python3 -m virtualenv "$STORAGE/venv"
+source "$STORAGE/venv/bin/activate"
 pip install -e ".[dev]"
 ```
 
 The Slurm scripts locate the environment themselves, in this order: `$MOEQUANT_VENV`,
-then a local `.venv/`, then a `.deps/` directory added to `PYTHONPATH`. That last fallback
-exists because `python -m venv` cannot always bootstrap pip on these hosts; if that
-happens, use `pip install --target ./.deps -e .` instead of fighting it.
+then a local `.venv/`, then a `.deps/` directory added to `PYTHONPATH`. With the venv in
+storage rather than in the repo, export `MOEQUANT_VENV=$STORAGE/venv`.
+
+If the repo ever moves, the editable install keeps pointing at the old path and jobs will
+silently run stale code. Re-point it with `pip install -e . --no-deps` from the new
+location and confirm with `python -c "import moequant; print(moequant.__file__)"`.
 
 Every job sources `scripts/slurm/_preflight.sh` first, which verifies the environment,
-confirms torch actually sees a CUDA device, warns if the GPU predates BF16, and runs the
+confirms torch sees a CUDA device, aborts if any allocated card is below the wheel's
+minimum architecture or if the total VRAM is under `MOEQUANT_MIN_VRAM_GB`, and runs the
 torchao backend tests. All of that fails in seconds rather than part-way into a job.
 
 Course storage is **not backed up**. Push to GitHub before running anything long.
@@ -100,7 +129,7 @@ Loads on the meta device, so it needs no GPU and downloads only the config. It r
 **What to confirm before continuing:**
 
 - routers matched equals the layer count (16 for OLMoE, 24 for Qwen)
-- router fraction is around 0.02%
+- router fraction is a few hundredths of a percent (OLMoE: 2,097,152 of 6.92B = 0.0303%)
 - expert layout says `individual-linear`, not `fused-3d`
 - the policy preview shows `uniform` including all routers and `mixed` including none
 
@@ -135,11 +164,14 @@ Useful flags:
 | `--results-dir /path` | write elsewhere |
 | `--cache-dir /path` | override the HuggingFace cache |
 
-A quick end-to-end check on real weights before committing to the full sweep:
+A quick end-to-end check on real weights before committing to the full sweep, written to a
+throwaway `results/smoke/` so a later sweep does not mistake it for gold:
 
 ```bash
+sbatch scripts/slurm/run_smoke.sh olmoe
+# or, on a machine with a usable GPU:
 python scripts/run.py --config configs/olmoe.yaml --policies gold uniform mixed \
-    --bits 4 --routing-sequences 16 --max-ppl-windows 10
+    --bits 4 --routing-sequences 16 --max-ppl-windows 10 --results-dir results/smoke
 ```
 
 ## Step 3: analyse

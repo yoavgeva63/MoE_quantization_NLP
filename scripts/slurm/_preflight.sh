@@ -15,18 +15,25 @@ export TOKENIZERS_PARALLELISM=false
 export MPLCONFIGDIR="${STORAGE}/mpl_cache"
 mkdir -p "${HF_HOME}" "${HF_DATASETS_CACHE}" "${MPLCONFIGDIR}" logs
 
-# Activate whichever environment exists. MOEQUANT_VENV wins; then a local .venv; then a
-# PYTHONPATH-style .deps tree for hosts where `python -m venv` cannot bootstrap pip.
+# Activate whichever environment exists. MOEQUANT_VENV wins; then a local .venv; then the
+# venv in storage, which is where it lives on this cluster because the repo sits on a
+# shared filesystem; then a PYTHONPATH-style .deps tree for hosts where `python -m venv`
+# cannot bootstrap pip. The storage fallback matters: a job must not depend on the
+# submitting shell having exported anything.
 if [[ -n "${MOEQUANT_VENV:-}" ]]; then
     # shellcheck disable=SC1091
     source "${MOEQUANT_VENV}/bin/activate"
 elif [[ -f .venv/bin/activate ]]; then
     # shellcheck disable=SC1091
     source .venv/bin/activate
+elif [[ -f "${STORAGE}/venv/bin/activate" ]]; then
+    # shellcheck disable=SC1091
+    source "${STORAGE}/venv/bin/activate"
 elif [[ -d .deps ]]; then
     export PYTHONPATH="${PWD}/.deps:${PWD}/src:${PYTHONPATH:-}"
 else
     echo "ERROR: no Python environment found." >&2
+    echo "  Looked for: \$MOEQUANT_VENV, ./.venv, ${STORAGE}/venv, ./.deps" >&2
     echo "  Create one with:  python -m venv .venv && source .venv/bin/activate \\" >&2
     echo "                    && pip install -e '.[dev]'" >&2
     echo "  Or set MOEQUANT_VENV to an existing environment." >&2
@@ -73,11 +80,38 @@ if not torch.cuda.is_available():
           "reinstall a CUDA wheel.", file=sys.stderr)
     sys.exit(1)
 
-cap = torch.cuda.get_device_capability(0)
-print(f"GPU: {torch.cuda.get_device_name(0)} (compute {cap[0]}.{cap[1]})")
-if cap[0] < 7:
-    print(f"WARNING: compute capability {cap[0]}.{cap[1]} predates BF16 support; "
-          "set dtype: float16 in the config or expect a failure.", file=sys.stderr)
+import os
+
+# The wheel only ships kernels for the architectures in get_arch_list(); anything older
+# loads and reports cuda.is_available() == True, then fails on the first kernel launch.
+# torch.cuda.is_bf16_supported() is not a usable guard here — it returns True on sm_61.
+arches = sorted(int(a[3:]) for a in torch.cuda.get_arch_list()
+                if a.startswith("sm_") and a[3:].isdigit())
+min_arch = min(arches) if arches else 0
+
+unusable, total_gb = [], 0.0
+for i in range(torch.cuda.device_count()):
+    p = torch.cuda.get_device_properties(i)
+    sm, gb = p.major * 10 + p.minor, p.total_memory / 1024**3
+    total_gb += gb
+    ok = sm >= min_arch
+    print(f"  cuda:{i} {p.name} sm_{sm} {gb:.1f} GB {'ok' if ok else 'UNUSABLE'}")
+    if not ok:
+        unusable.append(f"cuda:{i} {p.name} (sm_{sm})")
+print(f"{torch.cuda.device_count()} GPU(s), {total_gb:.1f} GB total VRAM")
+
+if unusable:
+    print(f"ERROR: this torch build needs sm_{min_arch}+; got:\n  - "
+          + "\n  - ".join(unusable), file=sys.stderr)
+    print("On studentkillable request the RTX 2080 Ti explicitly: "
+          "--gres=gpu:geforce_rtx_2080:N (the TITAN Xp cards are sm_61).", file=sys.stderr)
+    sys.exit(1)
+
+need = float(os.environ.get("MOEQUANT_MIN_VRAM_GB", "0"))
+if total_gb < need:
+    print(f"ERROR: need ~{need:.0f} GB total VRAM, allocated {total_gb:.1f} GB. "
+          "Raise the GPU count in --gres.", file=sys.stderr)
+    sys.exit(1)
 PY
 
 # The quantization backend, exercised for real on a synthetic model. This is the check

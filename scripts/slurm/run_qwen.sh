@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=moe-qwen
 #SBATCH --partition=studentkillable
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:geforce_rtx_2080:5
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
 #SBATCH --time=16:00:00
@@ -9,11 +9,20 @@
 #SBATCH --error=logs/qwen_%j.err
 
 # Part 1 sweep on Qwen1.5-MoE-A2.7B.
-# ~28GB in BF16 for the gold run: request a 40GB+ card, or --gres=gpu:2 and let
-# device_map="auto" shard it.
+#
+# ~28GB in BF16 for the gold run, sharded over five RTX 2080 Ti (11GB each) by
+# device_map="auto". Five rather than three leaves room for activations and the router
+# capture. See run_olmoe.sh for why the GPU type is pinned.
 
 set -euo pipefail
-cd "$(dirname "$0")/../.."
+
+# Slurm runs a copy of this file out of its spool directory, so "$0" says nothing about
+# where the repo is. Prefer the submission directory, and fall back to "$0" for the case
+# where the script is executed directly rather than submitted.
+cd "${MOEQUANT_REPO:-${SLURM_SUBMIT_DIR:-$(dirname "$0")/../..}}"
+[[ -f pyproject.toml ]] || { echo "ERROR: $PWD is not the repo root; submit from there or set MOEQUANT_REPO." >&2; exit 1; }
+
+export MOEQUANT_MIN_VRAM_GB=40
 
 # shellcheck disable=SC1091
 source scripts/slurm/_preflight.sh
