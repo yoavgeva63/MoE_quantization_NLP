@@ -71,9 +71,12 @@ MODEL_SPECS: dict[str, ModelSpec] = {
         key="qwen",
         model_id="Qwen/Qwen1.5-MoE-A2.7B",
         router_pattern=r".*\.mlp\.gate",
-        # shared_expert_gate is a 1-output sigmoid gate, not a router. It is not hooked
-        # for routing metrics, but it is gate-like so `mixed` protects it too.
-        protect_patterns=(r".*\.mlp\.gate", r".*\.shared_expert_gate"),
+        # Routers only, so `mixed` means the same thing here as it does for OLMoE and the
+        # two architectures remain comparable. shared_expert_gate is a 1-output scalar
+        # weighting the shared expert's contribution, not a choice among experts, so it is
+        # quantized like everything else. That also makes this the conservative test: any
+        # distortion it picks up counts against `mixed` rather than for it.
+        protect_patterns=(r".*\.mlp\.gate",),
         notes="24 layers, 60 experts, top-4, plus a shared expert with its own gate.",
     ),
     "deepseek": ModelSpec(

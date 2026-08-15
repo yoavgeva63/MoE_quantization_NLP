@@ -64,7 +64,12 @@ def test_uniform_and_mixed_differ_only_by_routers(tiny_model, tiny_spec):
     )
 
 
-def test_mixed_also_protects_shared_expert_gate(tiny_model_shared, tiny_spec_shared):
+def test_mixed_honours_extra_protect_patterns(tiny_model_shared, tiny_spec_shared):
+    """A spec that protects more than its routers must have that respected.
+
+    No real spec does this now - see test_real_specs_are_wellformed - but the policy
+    builder should not quietly drop patterns a future architecture depends on.
+    """
     policy = build_policy("mixed", tiny_spec_shared, bits=4)
     patterns = [re.compile(p) for p in policy.skip_patterns]
     assert any(p.fullmatch("model.layers.0.mlp.shared_expert_gate") for p in patterns)

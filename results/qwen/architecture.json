@@ -39,9 +39,9 @@
   "parameter_census": {
     "total_params": 14315784192,
     "router_params": 2949120,
-    "protected_params": 2998272,
+    "protected_params": 2949120,
     "router_fraction": 0.00020600478188599952,
-    "protected_fraction": 0.00020943819491743286
+    "protected_fraction": 0.00020600478188599952
   },
   "expert_layout": {
     "linear_expert_modules": 4416,

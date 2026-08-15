@@ -37,8 +37,15 @@ def test_router_pattern_excludes_shared_expert_gate(tiny_model_shared, tiny_spec
     assert all(fqn.endswith(".mlp.gate") for fqn in routers)
 
 
-def test_shared_expert_gate_is_still_protected(tiny_model_shared, tiny_spec_shared):
-    """...but it *is* in the protect list, so `mixed` keeps it in high precision."""
+def test_protect_patterns_can_cover_more_than_routers(tiny_model_shared, tiny_spec_shared):
+    """The mechanism supports protecting extra gates, even though no real spec does.
+
+    Qwen's `shared_expert_gate` was protected at one point. It is not a router - it emits
+    one scalar weighting the shared expert rather than choosing among experts - so
+    protecting it made `mixed` mean something different on Qwen than on OLMoE. The real
+    specs now protect routers only; this keeps the capability under test for future
+    architectures that genuinely need it.
+    """
     import re
 
     protect = [re.compile(p) for p in tiny_spec_shared.protect_patterns]
@@ -89,8 +96,12 @@ def test_real_specs_are_wellformed():
     for key, spec in MODEL_SPECS.items():
         assert spec.key == key
         assert spec.protect_patterns, f"{key} protects nothing"
-        # The router pattern must be among the protected patterns, or `mixed` is a no-op.
-        assert spec.router_pattern in spec.protect_patterns
+        # `mixed` must protect the routers and nothing besides. Anything extra stops the
+        # comparison against `uniform` from isolating the router, and stops `mixed`
+        # meaning the same thing from one architecture to the next.
+        assert spec.protect_patterns == (spec.router_pattern,), (
+            f"{key} protects more than its routers: {spec.protect_patterns}"
+        )
 
 
 @pytest.mark.parametrize(

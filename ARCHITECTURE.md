@@ -56,10 +56,18 @@ names to read topology from, and a flag for whether the router's output *is* the
 
 Two details worth understanding:
 
-**`router_pattern` vs `protect_patterns` are separate on purpose.** Qwen's
-`shared_expert_gate` is gate-like, so `mixed` should keep it in high precision, but it is
-a one-output sigmoid gate and not a router, so it must *not* be hooked for routing
-metrics. Conflating them would pollute the KL.
+**`router_pattern` vs `protect_patterns` are separate on purpose**, even though every
+current spec sets them to the same regex. Qwen's `shared_expert_gate` is the reason they
+were split: it is gate-like, and an early version of the spec protected it. That was a
+mistake. It emits one scalar weighting the shared expert's contribution rather than
+choosing among experts, so protecting it made `mixed` mean something broader on Qwen than
+on OLMoE, which has no shared expert at all. Every spec now protects routers only, and
+`test_real_specs_are_wellformed` enforces it. Leaving the shared gate quantized also makes
+Qwen the conservative test: whatever distortion it picks up counts against `mixed`.
+
+The two fields stay distinct because a future architecture may genuinely need to protect a
+non-router module, and because the shared gate must *not* be hooked for routing metrics
+regardless of how it is quantized — hooking it would pollute the KL.
 
 **Topology is read from the model, then cross-checked against weight shapes.** Reading
 `num_experts` from the config means a checkpoint revision cannot silently desync us;
