@@ -49,6 +49,28 @@ def _resolve_device(requested: str) -> str:
     return requested
 
 
+def _max_memory(cfg: ExperimentConfig) -> dict[int, int] | None:
+    """Per-GPU weight budget, so `device_map="auto"` leaves room for the forward pass.
+
+    Left alone, `auto` packs weights onto the fewest cards they fit on. That is a sensible
+    default when activations are cheap, and it is wrong here. Quantizing shrinks the
+    weights enough that a whole model suddenly "fits" on one card, so accelerate stops
+    sharding: OLMoE INT4 recorded a device map of `{'0': 1}`, the entire model on GPU 0.
+    The forward pass then has to fit in whatever is left, and for Qwen it did not - the
+    logits alone are vocab x seq x 4 bytes, about 600MB at a 152k vocab.
+
+    The failure mode is nasty because gold is immune: BF16 is far too big for one card, so
+    it gets spread and looks fine. Only the quantized runs break, which are the runs the
+    experiment is about.
+    """
+    if cfg.device != "cuda" or not torch.cuda.is_available():
+        return None
+    return {
+        i: int(torch.cuda.get_device_properties(i).total_memory * cfg.gpu_mem_fraction)
+        for i in range(torch.cuda.device_count())
+    }
+
+
 def load_model(cfg: ExperimentConfig, spec, quant_config):
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -59,6 +81,7 @@ def load_model(cfg: ExperimentConfig, spec, quant_config):
         spec.model_id,
         torch_dtype=DTYPES[cfg.dtype],
         device_map="auto" if cfg.device == "cuda" else cfg.device,
+        max_memory=_max_memory(cfg),
         quantization_config=quant_config,
         trust_remote_code=spec.trust_remote_code,
         cache_dir=cfg.cache_dir,

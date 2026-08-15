@@ -13,6 +13,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 import torch
 
 from moequant.capture import capture_routing
@@ -20,7 +21,13 @@ from moequant.config import ExperimentConfig, environment
 from moequant.metrics import compare_routing
 from moequant.quantize import build_policy
 from moequant.registry import parameter_census, resolve_topology
-from moequant.runner import _json_default, _memory_report, _print_memory, _reset_memory_stats
+from moequant.runner import (
+    _json_default,
+    _max_memory,
+    _memory_report,
+    _print_memory,
+    _reset_memory_stats,
+)
 from moequant.verify import audit
 from tests.conftest import TinyMoE
 from tests.test_verify import fake_quantize_module
@@ -203,3 +210,25 @@ def test_memory_report_is_json_serialisable():
     """It lands in metrics.json, so it has to survive the same encoder as everything else."""
     report = _memory_report(torch.nn.Linear(4, 4), "cpu")
     assert json.loads(json.dumps(report, default=_json_default)) is not None
+
+
+def test_max_memory_is_none_off_gpu():
+    """No CUDA means no budget to impose; `from_pretrained` should see its default."""
+    assert _max_memory(ExperimentConfig(model_key="olmoe", device="cpu")) is None
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs a GPU")
+def test_max_memory_reserves_headroom_on_every_device():
+    """Every visible GPU must be offered, and none of it offered in full.
+
+    Handing accelerate the whole card is what let a quantized model land entirely on GPU 0
+    with nothing left for the logits. The budget has to be a strict fraction.
+    """
+    cfg = ExperimentConfig(model_key="olmoe", device="cuda", gpu_mem_fraction=0.75)
+    budget = _max_memory(cfg)
+
+    assert set(budget) == set(range(torch.cuda.device_count()))
+    for index, allowed in budget.items():
+        total = torch.cuda.get_device_properties(index).total_memory
+        assert 0 < allowed < total
+        assert allowed == pytest.approx(total * 0.75, rel=1e-6)

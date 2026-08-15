@@ -13,6 +13,10 @@ export HF_HOME="${STORAGE}/hf_cache"
 export HF_DATASETS_CACHE="${STORAGE}/datasets_cache"
 export TOKENIZERS_PARALLELISM=false
 export MPLCONFIGDIR="${STORAGE}/mpl_cache"
+# These runs alternate between big transient logits and long-lived quantized weights,
+# which fragments the caching allocator badly on 11GB cards. Expandable segments let the
+# allocator grow a block instead of failing next to free-but-unusable memory.
+export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 mkdir -p "${HF_HOME}" "${HF_DATASETS_CACHE}" "${MPLCONFIGDIR}" logs
 
 # Activate whichever environment exists. MOEQUANT_VENV wins; then a local .venv; then the

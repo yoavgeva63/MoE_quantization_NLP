@@ -43,6 +43,10 @@ class ExperimentConfig:
     cache_dir: str | None = None
     placebo_seed: int = 0
 
+    # Fraction of each GPU that `device_map="auto"` may fill with weights. See
+    # runner._max_memory: the remainder is what the forward pass has to live in.
+    gpu_mem_fraction: float = 0.75
+
     extra: dict = field(default_factory=dict)
 
     @classmethod
