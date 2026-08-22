@@ -185,6 +185,71 @@ def bootstrap_ci(
     return {"mean": mean, "ci_low": float(low), "ci_high": float(high), "n": int(arr.size)}
 
 
+def _paired_array(values: torch.Tensor | np.ndarray) -> np.ndarray:
+    arr = values.detach().cpu().numpy() if isinstance(values, torch.Tensor) else np.asarray(values)
+    return arr.astype(np.float64).ravel()
+
+
+def paired_bootstrap_ci(
+    baseline: torch.Tensor | np.ndarray,
+    treatment: torch.Tensor | np.ndarray,
+    groups: np.ndarray,
+    n_boot: int = 10000,
+    alpha: float = 0.05,
+    seed: int = 0,
+) -> dict[str, float]:
+    """Confidence interval on `mean(treatment) - mean(baseline)` over the same sequences.
+
+    Two policies are measured on identical tokens, so their per-token values are paired.
+    Building an interval for each separately and asking whether the two overlap throws
+    that pairing away and answers a harder question than the one being asked: it treats
+    the sequence-level variation shared by both arms as if it were independent noise in
+    each. Resampling sequences once per replicate and differencing inside the replicate
+    cancels the shared component, which is why this interval is narrower than the gap
+    between two marginal intervals.
+
+    `fraction_below_zero` is the one-sided bootstrap p-value for the difference being
+    negative, reported so a claim does not have to rest on reading the endpoints.
+    """
+    base = _paired_array(baseline)
+    treat = _paired_array(treatment)
+    groups = np.asarray(groups).ravel()
+    if base.size != treat.size or groups.size != base.size:
+        raise ValueError(
+            f"Paired bootstrap needs matched arrays: baseline {base.size}, treatment "
+            f"{treat.size}, groups {groups.size}. Both arms must be measured on the same "
+            "token positions in the same order."
+        )
+    if base.size == 0:
+        return {
+            "baseline_mean": float("nan"), "treatment_mean": float("nan"),
+            "difference": float("nan"), "ci_low": float("nan"), "ci_high": float("nan"),
+            "fraction_below_zero": float("nan"), "n_boot": int(n_boot), "num_groups": 0,
+        }
+
+    _, index = np.unique(groups, return_inverse=True)
+    base_sums = np.bincount(index, weights=base)
+    treat_sums = np.bincount(index, weights=treat)
+    counts = np.bincount(index).astype(np.float64)
+
+    rng = np.random.default_rng(seed)
+    draw = rng.integers(0, base_sums.size, size=(n_boot, base_sums.size))
+    denominator = counts[draw].sum(axis=1)
+    samples = (treat_sums[draw].sum(axis=1) - base_sums[draw].sum(axis=1)) / denominator
+
+    low, high = np.quantile(samples, [alpha / 2, 1 - alpha / 2])
+    return {
+        "baseline_mean": float(base.mean()),
+        "treatment_mean": float(treat.mean()),
+        "difference": float(treat.mean() - base.mean()),
+        "ci_low": float(low),
+        "ci_high": float(high),
+        "fraction_below_zero": float((samples < 0).mean()),
+        "n_boot": int(n_boot),
+        "num_groups": int(base_sums.size),
+    }
+
+
 def compare_layer(
     gold: torch.Tensor,
     cand: torch.Tensor,

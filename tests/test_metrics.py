@@ -10,6 +10,7 @@ from moequant.metrics import (
     bootstrap_ci,
     compare_routing,
     effective_weights,
+    paired_bootstrap_ci,
     per_token_js,
     per_token_kl,
     per_token_selection,
@@ -159,6 +160,103 @@ def test_grouped_bootstrap_is_wider_than_naive():
 def test_bootstrap_handles_empty():
     ci = bootstrap_ci(torch.tensor([]))
     assert ci["n"] == 0
+
+
+# -- paired difference ----------------------------------------------------------------
+
+
+def _paired_fixture(n_groups=32, per_group=64, shift=-0.5, seed=0):
+    """Two arms sharing a large per-sequence offset and differing by a constant shift.
+
+    This is the shape of the real comparison: `uniform` and `mixed` are measured on the
+    same sequences, so most of the spread in either arm is variation the two share.
+    """
+    rng = np.random.default_rng(seed)
+    offsets = rng.normal(0, 5, n_groups).repeat(per_group)
+    noise = rng.normal(0, 0.05, n_groups * per_group)
+    baseline = offsets + noise
+    treatment = baseline + shift + rng.normal(0, 0.05, n_groups * per_group)
+    groups = np.repeat(np.arange(n_groups), per_group)
+    return baseline, treatment, groups
+
+
+def test_paired_interval_brackets_the_true_shift():
+    baseline, treatment, groups = _paired_fixture(shift=-0.5)
+    result = paired_bootstrap_ci(baseline, treatment, groups, n_boot=2000, seed=0)
+    assert result["difference"] == pytest.approx(-0.5, abs=0.05)
+    assert result["ci_low"] < result["difference"] < result["ci_high"]
+
+
+def test_paired_interval_is_narrower_than_two_marginal_intervals():
+    """The reason for the paired test: shared sequence-level variation must cancel.
+
+    The unpaired comparison carries both arms' spread, and here that spread is dominated
+    by an offset the two arms have in common.
+    """
+    baseline, treatment, groups = _paired_fixture()
+    paired = paired_bootstrap_ci(baseline, treatment, groups, n_boot=2000, seed=0)
+    marginal_base = bootstrap_ci(baseline, groups, n_boot=2000, seed=0)
+    marginal_treat = bootstrap_ci(treatment, groups, n_boot=2000, seed=0)
+
+    paired_width = paired["ci_high"] - paired["ci_low"]
+    unpaired_width = (
+        (marginal_base["ci_high"] - marginal_base["ci_low"])
+        + (marginal_treat["ci_high"] - marginal_treat["ci_low"])
+    )
+    assert paired_width < unpaired_width / 10
+
+
+def test_paired_test_detects_a_shift_the_marginal_intervals_cannot():
+    """The under-powered case: marginal intervals overlap while the difference is real."""
+    baseline, treatment, groups = _paired_fixture(shift=-0.5)
+    marginal_base = bootstrap_ci(baseline, groups, n_boot=2000, seed=0)
+    marginal_treat = bootstrap_ci(treatment, groups, n_boot=2000, seed=0)
+    assert marginal_treat["ci_high"] > marginal_base["ci_low"]  # they overlap
+
+    paired = paired_bootstrap_ci(baseline, treatment, groups, n_boot=2000, seed=0)
+    assert paired["ci_high"] < 0.0
+    assert paired["fraction_below_zero"] == pytest.approx(1.0)
+
+
+def test_paired_difference_of_identical_arms_is_zero():
+    baseline, _, groups = _paired_fixture()
+    result = paired_bootstrap_ci(baseline, baseline, groups, n_boot=200, seed=0)
+    assert result["difference"] == pytest.approx(0.0)
+    assert result["ci_low"] == pytest.approx(0.0)
+    assert result["ci_high"] == pytest.approx(0.0)
+
+
+def test_paired_difference_is_antisymmetric():
+    baseline, treatment, groups = _paired_fixture()
+    forward = paired_bootstrap_ci(baseline, treatment, groups, n_boot=1000, seed=0)
+    reverse = paired_bootstrap_ci(treatment, baseline, groups, n_boot=1000, seed=0)
+    assert forward["difference"] == pytest.approx(-reverse["difference"])
+    assert forward["ci_low"] == pytest.approx(-reverse["ci_high"])
+    assert forward["fraction_below_zero"] == pytest.approx(1.0 - reverse["fraction_below_zero"])
+
+
+def test_paired_bootstrap_resamples_sequences_not_tokens():
+    """A single sequence of correlated tokens gives a zero-width interval, correctly.
+
+    With one group there is nothing to resample, so a token-level bootstrap would invent
+    precision the design does not have.
+    """
+    baseline, treatment, _ = _paired_fixture(n_groups=1, per_group=256, shift=-0.5)
+    groups = np.zeros(baseline.size, dtype=int)
+    result = paired_bootstrap_ci(baseline, treatment, groups, n_boot=200, seed=0)
+    assert result["num_groups"] == 1
+    assert result["ci_high"] - result["ci_low"] == pytest.approx(0.0)
+
+
+def test_paired_bootstrap_rejects_unaligned_arms():
+    """Unequal arms mean the two were not measured on the same tokens."""
+    with pytest.raises(ValueError, match="matched arrays"):
+        paired_bootstrap_ci(np.zeros(10), np.zeros(11), np.zeros(10))
+
+
+def test_paired_bootstrap_handles_empty():
+    result = paired_bootstrap_ci(np.array([]), np.array([]), np.array([]))
+    assert result["num_groups"] == 0
 
 
 # -- whole-model comparison ----------------------------------------------------------

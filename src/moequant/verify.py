@@ -19,6 +19,15 @@ from torch import nn
 from .quantize import QuantPolicy
 from .registry import ModelSpec, find_routers
 
+# Functional roles the bit-width check samples from, tried in order. The router pattern
+# is full-match so it cannot swallow `...experts.J.gate_proj` or `...shared_expert_gate`,
+# neither of which chooses among experts.
+ROLE_PATTERNS = (
+    ("router", r".*\.mlp\.gate"),
+    ("expert", r".*\.experts\..*"),
+    ("attention", r".*\.self_attn(\..*)?"),
+)
+
 
 def _unwrap(weight: torch.Tensor) -> torch.Tensor:
     return weight.data if isinstance(weight, nn.Parameter) else weight
@@ -182,11 +191,61 @@ def check(model: nn.Module, spec: ModelSpec, policy: QuantPolicy, strict: bool =
     return report
 
 
-def check_bit_width(model: nn.Module, policy: QuantPolicy, sample: int = 4) -> dict:
+def module_role(fqn: str, spec: ModelSpec | None = None) -> str:
+    """Which functional part of the network a module belongs to.
+
+    The bit-width check samples by role rather than by position, so it cannot miss the
+    modules the experiment is about. Router is tested first because an expert's own
+    `gate_proj` and a Qwen `shared_expert_gate` must not be mistaken for a router.
+    """
+    if spec is not None and spec.is_router(fqn):
+        return "router"
+    for role, pattern in ROLE_PATTERNS:
+        if re.fullmatch(pattern, fqn):
+            return role
+    return "other"
+
+
+def _spread(items: list[str], count: int) -> list[str]:
+    """Evenly spaced picks from a list, so a sample covers the depth of the model."""
+    if count >= len(items):
+        return list(items)
+    if count <= 1:
+        return items[:1]
+    last = len(items) - 1
+    return [items[round(i * last / (count - 1))] for i in range(count)]
+
+
+def expected_roles(policy: QuantPolicy) -> tuple[str, ...]:
+    """Roles whose absence from the quantized pool would make the check vacuous.
+
+    Experts are the bulk of what every quantized policy touches, and the routers are what
+    the experiment is about - except under `mixed`, where a quantized router is a failure
+    `check()` already raises on.
+    """
+    if policy.name == "mixed":
+        return ("expert",)
+    return ("router", "expert")
+
+
+def check_bit_width(
+    model: nn.Module,
+    policy: QuantPolicy,
+    sample: int = 4,
+    spec: ModelSpec | None = None,
+) -> dict:
     """Confirm the requested precision was actually applied, via distinct-value counts.
 
     Independent of torchao's own bookkeeping: we look at the dequantized values and count
     how many distinct levels each output channel uses.
+
+    The sample is drawn **per role**, not by striding the module list. Striding looked
+    like it spread the sample across depth, but the number of quantizable modules per
+    layer is a divisor of the stride on both real checkpoints (197 per layer with
+    `3152 // 4 = 4 x 197` on OLMoE; 189 with `4536 // 4 = 6 x 189` on Qwen), so every
+    pick landed on `self_attn.q_proj` and the check never inspected a router or an expert
+    on the runs that matter. Sampling by role makes that impossible: whatever the module
+    layout, the routers and the experts are always looked at.
     """
     if policy.is_gold:
         return {"checked": 0, "note": "gold policy, nothing to check"}
@@ -200,23 +259,40 @@ def check_bit_width(model: nn.Module, policy: QuantPolicy, sample: int = 4) -> d
     ]
     if not candidates:
         return {"checked": 0, "allowed_levels": allowed, "samples": [], "violations": [],
-                "passed": False, "note": "policy is not gold but no quantized weight found"}
+                "passed": False, "covers_expected_roles": False,
+                "missing_roles": list(expected_roles(policy)),
+                "note": "policy is not gold but no quantized weight found"}
 
-    # Spread the sample across the depth of the model. Taking the first few would only
-    # ever inspect layer 0 and would miss a failure isolated to later layers.
+    by_role: dict[str, list[str]] = {}
+    for fqn in candidates:
+        by_role.setdefault(module_role(fqn, spec), []).append(fqn)
+
+    # Every role present gets at least one pick, and the requested sample size is shared
+    # out among them, so raising `sample` deepens the check without dropping a role.
+    quota = max(1, -(-sample // len(by_role)))
+    picked = [(role, fqn) for role in sorted(by_role) for fqn in _spread(by_role[role], quota)]
+
     modules = dict(model.named_modules())
-    step = max(1, len(candidates) // sample)
-    picked = candidates[::step][:sample]
-
     checked = [
-        {"module": fqn, "levels": effective_levels(modules[fqn].weight), "allowed": allowed}
-        for fqn in picked
+        {
+            "module": fqn,
+            "role": role,
+            "levels": effective_levels(modules[fqn].weight),
+            "allowed": allowed,
+        }
+        for role, fqn in picked
     ]
     violations = [c for c in checked if c["levels"] > allowed]
+    missing = [role for role in expected_roles(policy) if role not in by_role]
+
     return {
         "checked": len(checked),
         "allowed_levels": allowed,
         "samples": checked,
         "violations": violations,
         "passed": not violations,
+        "roles_checked": sorted(by_role),
+        "roles_available": {role: len(items) for role, items in sorted(by_role.items())},
+        "covers_expected_roles": not missing,
+        "missing_roles": missing,
     }

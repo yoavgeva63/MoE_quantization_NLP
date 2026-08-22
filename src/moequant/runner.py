@@ -244,11 +244,19 @@ def run(cfg: ExperimentConfig, progress: bool = True) -> dict:
 
     # -- correctness gates, before anything expensive is computed --------------------
     audit = verify.check(model, spec, policy, strict=True)
-    bit_check = verify.check_bit_width(model, policy)
+    bit_check = verify.check_bit_width(model, policy, spec=spec)
     if not bit_check.get("passed", True):
         raise verify.VerificationError(
             f"Bit-width check failed: {bit_check['violations']}. A weight shows more "
             f"distinct values per channel than INT{policy.bits} allows."
+        )
+    if not bit_check.get("covers_expected_roles", True):
+        # A check that never looks at a router or an expert passes vacuously, which is the
+        # failure mode this whole module exists to prevent.
+        raise verify.VerificationError(
+            f"Bit-width check inspected {bit_check['roles_checked']} but found no "
+            f"quantized {bit_check['missing_roles']} to sample. The precision claim would "
+            "say nothing about the modules the experiment is about."
         )
     topology = resolve_topology(model, spec)
     census = parameter_census(model, spec)

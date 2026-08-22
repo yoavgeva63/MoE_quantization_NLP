@@ -21,6 +21,7 @@ from moequant.verify import (
     check_bit_width,
     effective_levels,
     is_quantized,
+    module_role,
     weight_kind,
 )
 
@@ -91,6 +92,94 @@ def test_bit_width_check_flags_violation(tiny_model, tiny_spec):
 def test_bit_width_check_skipped_for_gold(tiny_model, tiny_spec):
     policy = build_policy("gold", tiny_spec, bits=None)
     assert check_bit_width(tiny_model, policy)["checked"] == 0
+
+
+# -- what the bit-width check actually looks at ----------------------------------------
+
+
+def test_roles_separate_routers_from_lookalike_gates():
+    """`mlp.gate` is a router; an expert's `gate_proj` and a shared-expert gate are not."""
+    assert module_role("model.layers.0.mlp.gate") == "router"
+    assert module_role("model.layers.0.mlp.experts.3.gate_proj") == "expert"
+    assert module_role("model.layers.0.mlp.shared_expert_gate") == "other"
+    assert module_role("model.layers.0.self_attn.q_proj") == "attention"
+
+
+def test_bit_width_check_samples_a_router_and_an_expert(tiny_model, tiny_spec):
+    """Regression: the stride the check used to take landed only on attention.
+
+    With 197 quantizable modules per layer on OLMoE, `3152 // 4` is exactly `4 x 197`, so
+    `candidates[::step][:4]` picked `self_attn.q_proj` four times and the precision claim
+    covered neither the experts being quantized nor the routers under study.
+    """
+    policy = build_policy("uniform", tiny_spec, bits=4)
+    apply_policy(tiny_model, policy)
+    result = check_bit_width(tiny_model, policy, spec=tiny_spec)
+
+    roles = {sample["role"] for sample in result["samples"]}
+    assert {"router", "expert"} <= roles
+    assert result["covers_expected_roles"]
+    assert not result["missing_roles"]
+
+
+def test_bit_width_check_resists_a_pathological_module_count(tiny_spec):
+    """The old failure was arithmetic, so reproduce it: a layout the stride resonates with.
+
+    Every layer here has exactly as many quantizable modules as the stride would step, so
+    a strided sample would return the same role every time.
+    """
+    torch.manual_seed(0)
+    modules_per_layer = 4
+    model = nn.Module()
+    model.model = nn.Module()
+    model.model.layers = nn.ModuleList()
+    for _ in range(4 * modules_per_layer):
+        layer = nn.Module()
+        layer.self_attn = nn.Module()
+        layer.self_attn.q_proj = nn.Linear(16, 16, bias=False)
+        layer.mlp = nn.Module()
+        layer.mlp.gate = nn.Linear(16, 8, bias=False)
+        layer.mlp.experts = nn.ModuleList([nn.Linear(16, 16, bias=False) for _ in range(2)])
+        model.model.layers.append(layer)
+    for _, module in model.named_modules():
+        if isinstance(module, nn.Linear):
+            fake_quantize_module(module, bits=4)
+
+    policy = build_policy("uniform", tiny_spec, bits=4)
+    result = check_bit_width(model, policy, spec=tiny_spec)
+    assert {"router", "expert", "attention"} <= {s["role"] for s in result["samples"]}
+    assert result["passed"]
+
+
+def test_bit_width_check_reports_a_missing_expected_role(tiny_model, tiny_spec):
+    """Only the routers quantized: the check must say the experts went uninspected."""
+    for fqn, module in tiny_model.named_modules():
+        if tiny_spec.is_router(fqn):
+            fake_quantize_module(module, bits=4)
+    policy = build_policy("uniform", tiny_spec, bits=4)
+    result = check_bit_width(tiny_model, policy, spec=tiny_spec)
+    assert result["roles_checked"] == ["router"]
+    assert result["missing_roles"] == ["expert"]
+    assert not result["covers_expected_roles"]
+
+
+def test_mixed_does_not_expect_a_quantized_router(tiny_model, tiny_spec):
+    """`mixed` leaves the routers alone, so their absence from the pool is correct."""
+    policy = build_policy("mixed", tiny_spec, bits=4)
+    apply_policy(tiny_model, policy)
+    result = check_bit_width(tiny_model, policy, spec=tiny_spec)
+    assert "router" not in result["roles_checked"]
+    assert result["covers_expected_roles"]
+    assert "expert" in result["roles_checked"]
+
+
+def test_bit_width_sample_spans_the_depth_of_each_role(tiny_model, tiny_spec):
+    """A role's picks must not all come from layer 0, which was the original intent."""
+    policy = build_policy("uniform", tiny_spec, bits=4)
+    apply_policy(tiny_model, policy)
+    result = check_bit_width(tiny_model, policy, sample=12, spec=tiny_spec)
+    experts = [s["module"] for s in result["samples"] if s["role"] == "expert"]
+    assert len({fqn.split(".")[2] for fqn in experts}) > 1
 
 
 # -- policy conformance ----------------------------------------------------------------

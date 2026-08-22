@@ -1,0 +1,2002 @@
+{
+  "model": "olmoe",
+  "runs": [
+    {
+      "run": "gold",
+      "policy": "gold",
+      "bits": null,
+      "label": "gold BF16",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": null,
+        "max_levels_any_channel": 1161,
+        "min_levels_any_channel": 1005,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 16,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.0,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1161,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1112,
+            "min_levels": 1005,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1115,
+            "min_levels": 1010,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1101,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1102,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1096,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1095,
+            "min_levels": 1031,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1026,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1091,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1093,
+            "min_levels": 1018,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1107,
+            "min_levels": 1033,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1106,
+            "min_levels": 1035,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1097,
+            "min_levels": 1034,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1083,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "bit-identical to gold in 16/16 layers"
+    },
+    {
+      "run": "mixed_int8",
+      "policy": "mixed",
+      "bits": 8,
+      "label": "mixed INT8",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 256,
+        "max_levels_any_channel": 1161,
+        "min_levels_any_channel": 1005,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 16,
+        "within_level_ceiling": false,
+        "max_abs_delta_from_gold": 0.0,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1161,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1112,
+            "min_levels": 1005,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1115,
+            "min_levels": 1010,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1101,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1102,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1096,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1095,
+            "min_levels": 1031,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1026,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1091,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1093,
+            "min_levels": 1018,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1107,
+            "min_levels": 1033,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1106,
+            "min_levels": 1035,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1097,
+            "min_levels": 1034,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1083,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "bit-identical to gold in 16/16 layers"
+    },
+    {
+      "run": "placebo_int8",
+      "policy": "placebo",
+      "bits": 8,
+      "label": "placebo INT8",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 256,
+        "max_levels_any_channel": 60,
+        "min_levels_any_channel": 16,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.00390625,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 60,
+            "min_levels": 29,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 43,
+            "min_levels": 25,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 41,
+            "min_levels": 25,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 41,
+            "min_levels": 21,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 35,
+            "min_levels": 21,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 34,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 34,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 33,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 31,
+            "min_levels": 18,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 17,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 31,
+            "min_levels": 18,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 16,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 28,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 17,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 16,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 60 of 256 levels per channel"
+    },
+    {
+      "run": "uniform_int8",
+      "policy": "uniform",
+      "bits": 8,
+      "label": "uniform INT8",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 256,
+        "max_levels_any_channel": 60,
+        "min_levels_any_channel": 16,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.00390625,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 60,
+            "min_levels": 29,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 43,
+            "min_levels": 25,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 41,
+            "min_levels": 25,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 41,
+            "min_levels": 21,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 35,
+            "min_levels": 21,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 34,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 34,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 33,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 31,
+            "min_levels": 18,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 17,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 31,
+            "min_levels": 18,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 16,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 28,
+            "min_levels": 19,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 17,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.00390625,
+            "max_levels": 30,
+            "min_levels": 16,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 60 of 256 levels per channel"
+    },
+    {
+      "run": "attention_int4",
+      "policy": "attention",
+      "bits": 4,
+      "label": "attention INT4",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 16,
+        "max_levels_any_channel": 16,
+        "min_levels_any_channel": 7,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.0625,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0625,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02587890625,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02734375,
+            "max_levels": 16,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.031982421875,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02734375,
+            "max_levels": 16,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.033203125,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.029296875,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0274658203125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0242919921875,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0242919921875,
+            "max_levels": 15,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.025390625,
+            "max_levels": 15,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0234375,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.01953125,
+            "max_levels": 15,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 16 of 16 levels per channel"
+    },
+    {
+      "run": "mixed_int4",
+      "policy": "mixed",
+      "bits": 4,
+      "label": "mixed INT4",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 16,
+        "max_levels_any_channel": 1161,
+        "min_levels_any_channel": 1005,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 16,
+        "within_level_ceiling": false,
+        "max_abs_delta_from_gold": 0.0,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1161,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1112,
+            "min_levels": 1005,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1115,
+            "min_levels": 1010,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1101,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1102,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1096,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1095,
+            "min_levels": 1031,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1026,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1091,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1093,
+            "min_levels": 1018,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1107,
+            "min_levels": 1033,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1106,
+            "min_levels": 1035,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1097,
+            "min_levels": 1034,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1083,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "bit-identical to gold in 16/16 layers"
+    },
+    {
+      "run": "placebo_int4",
+      "policy": "placebo",
+      "bits": 4,
+      "label": "placebo INT4",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 16,
+        "max_levels_any_channel": 16,
+        "min_levels_any_channel": 7,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.0625,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0625,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02587890625,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02734375,
+            "max_levels": 16,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.031982421875,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02734375,
+            "max_levels": 16,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.033203125,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.029296875,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0274658203125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0242919921875,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0242919921875,
+            "max_levels": 15,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.025390625,
+            "max_levels": 15,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0234375,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.01953125,
+            "max_levels": 15,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 16 of 16 levels per channel"
+    },
+    {
+      "run": "uniform_int4",
+      "policy": "uniform",
+      "bits": 4,
+      "label": "uniform INT4",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 16,
+        "max_levels_any_channel": 16,
+        "min_levels_any_channel": 7,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.0625,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0625,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02587890625,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02734375,
+            "max_levels": 16,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.031982421875,
+            "max_levels": 16,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.02734375,
+            "max_levels": 16,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.033203125,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.03125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.029296875,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0274658203125,
+            "max_levels": 16,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0242919921875,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0242919921875,
+            "max_levels": 15,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.025390625,
+            "max_levels": 15,
+            "min_levels": 7,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0234375,
+            "max_levels": 15,
+            "min_levels": 8,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.01953125,
+            "max_levels": 15,
+            "min_levels": 9,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 16 of 16 levels per channel"
+    },
+    {
+      "run": "attention_int3",
+      "policy": "attention",
+      "bits": 3,
+      "label": "attention INT3",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 8,
+        "max_levels_any_channel": 8,
+        "min_levels_any_channel": 4,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.1328125,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.1328125,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06640625,
+            "max_levels": 8,
+            "min_levels": 6,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.055419921875,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.056640625,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.068359375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.05859375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06884765625,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06640625,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.064453125,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0625,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.060546875,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.052734375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.052734375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.053466796875,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.048828125,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.04296875,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 8 of 8 levels per channel"
+    },
+    {
+      "run": "mixed_int3",
+      "policy": "mixed",
+      "bits": 3,
+      "label": "mixed INT3",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 8,
+        "max_levels_any_channel": 1161,
+        "min_levels_any_channel": 1005,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 16,
+        "within_level_ceiling": false,
+        "max_abs_delta_from_gold": 0.0,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1161,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1112,
+            "min_levels": 1005,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1115,
+            "min_levels": 1010,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1101,
+            "min_levels": 1025,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1102,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1096,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1095,
+            "min_levels": 1031,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1016,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1100,
+            "min_levels": 1026,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1091,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1093,
+            "min_levels": 1018,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1107,
+            "min_levels": 1033,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1106,
+            "min_levels": 1035,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1097,
+            "min_levels": 1034,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": true,
+            "max_abs_delta": 0.0,
+            "max_levels": 1083,
+            "min_levels": 1020,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "bit-identical to gold in 16/16 layers"
+    },
+    {
+      "run": "placebo_int3",
+      "policy": "placebo",
+      "bits": 3,
+      "label": "placebo INT3",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 8,
+        "max_levels_any_channel": 8,
+        "min_levels_any_channel": 4,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.1328125,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.1328125,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06640625,
+            "max_levels": 8,
+            "min_levels": 6,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.055419921875,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.056640625,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.068359375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.05859375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06884765625,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06640625,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.064453125,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0625,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.060546875,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.052734375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.052734375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.053466796875,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.048828125,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.04296875,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 8 of 8 levels per channel"
+    },
+    {
+      "run": "uniform_int3",
+      "policy": "uniform",
+      "bits": 3,
+      "label": "uniform INT3",
+      "routers": {
+        "num_layers": 16,
+        "allowed_levels": 8,
+        "max_levels_any_channel": 8,
+        "min_levels_any_channel": 4,
+        "channels_inspected": 1024,
+        "layers_identical_to_gold": 0,
+        "within_level_ceiling": true,
+        "max_abs_delta_from_gold": 0.1328125,
+        "per_layer": [
+          {
+            "layer": 0,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.1328125,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 1,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06640625,
+            "max_levels": 8,
+            "min_levels": 6,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 2,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.055419921875,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 3,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.056640625,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 4,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.068359375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 5,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.05859375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 6,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06884765625,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 7,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.06640625,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 8,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.064453125,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 9,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.0625,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 10,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.060546875,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 11,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.052734375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 12,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.052734375,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 13,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.053466796875,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 14,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.048828125,
+            "max_levels": 8,
+            "min_levels": 5,
+            "channels": 64,
+            "values_per_channel": 2048
+          },
+          {
+            "layer": 15,
+            "identical_to_gold": false,
+            "max_abs_delta": 0.04296875,
+            "max_levels": 8,
+            "min_levels": 4,
+            "channels": 64,
+            "values_per_channel": 2048
+          }
+        ]
+      },
+      "ok": true,
+      "detail": "quantized in all 16 layers, at most 8 of 8 levels per channel"
+    }
+  ],
+  "placebo": {
+    "placebo_seed": 0,
+    "modules": [
+      "model.layers.14.mlp.experts.10.down_proj"
+    ],
+    "num_modules": 1,
+    "protected_params": 2097152,
+    "router_budget": 2097152,
+    "ratio_to_router_budget": 1.0,
+    "num_routers": 16,
+    "candidate_pool_size": 3072,
+    "candidate_pool_sizes": [
+      2097152
+    ]
+  },
+  "placebo_exposure": {
+    "top_k": 8,
+    "num_layers": 16,
+    "modules": [
+      {
+        "module": "model.layers.14.mlp.experts.10.down_proj",
+        "layer": 14,
+        "expert": 10,
+        "tokens": 32768,
+        "token_fraction": 0.1142578125,
+        "token_layer_exposure_gap": 140.03418803418805
+      }
+    ]
+  }
+}

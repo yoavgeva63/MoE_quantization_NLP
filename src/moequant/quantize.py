@@ -182,12 +182,20 @@ def sample_placebo_modules(
 ) -> tuple[str, ...]:
     """Pick a random set of modules whose parameter count matches the routers'.
 
-    This is the control that makes a positive Part 1 result interpretable. If protecting
-    a random 0.02% of the model helps as much as protecting the routers, then the effect
-    was about keeping *some* weights in high precision, not about routers being special.
+    This is the control that makes a positive Part 1 result interpretable. If protecting a
+    randomly chosen set the size of the whole router budget helps as much as protecting the
+    routers, then the effect was about keeping *some* weights in high precision, not about
+    routers being special.
 
-    Routers themselves are excluded from the candidate pool, and we greedily accumulate
-    small modules until within `tolerance` of the router budget.
+    Routers themselves are excluded from the candidate pool, and we accumulate modules
+    until within `tolerance` of the router budget. On both real checkpoints the loop
+    **terminates after one draw**: every eligible candidate is an expert projection already
+    within tolerance of the whole budget on its own (1.000x on OLMoE, 0.978x on Qwen), so
+    the greedy accumulation and the tolerance band never come into play. The result is one
+    module in one layer, not a set spread across the model - which is the control's main
+    limitation, since it means the protected weights see a small fraction of tokens rather
+    than the routers' every token in every layer. `scripts/verify_offline.py` records the
+    chosen FQNs and measures that exposure.
     """
     import random
 
