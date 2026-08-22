@@ -17,9 +17,9 @@ Five configurations, each differing from `uniform` in exactly one respect:
 - `uniform` — INT-*N* everywhere (negative baseline)
 - `mixed` — INT-*N* experts, BF16 routers (the proposal)
 - `placebo` — `uniform` plus one randomly drawn non-router module matched to the router
-  parameter budget (control for "any high-precision weights help")
+parameter budget (control for "any high-precision weights help")
 - `attention` — `uniform` but attention stays BF16 (control for "any high-precision
-  island on the every-token path helps")
+island on the every-token path helps")
 
 Swept over INT8 / INT4 / INT3, except `attention`, which we only ran at INT4 and INT3.
 Evaluated on the WikiText-2 test split (~288k / ~299k scored tokens) with perplexity,
@@ -46,14 +46,16 @@ KL and top-1 flip rate at all three bit-widths on both models — six of six cel
 disjoint 95% intervals, confirmed by the paired bootstrap (0.00% of 10,000 replicates
 favour `uniform` in any cell). The effect grows as precision drops.
 
+
 | Model | Bits | Routing KL: uniform → mixed (attention) | PPL: uniform → mixed (attention) |
-|---|---|---|---|
-| OLMoE | INT8 | 0.0085 → 0.0064 | 9.39 → 9.32 |
-| OLMoE | INT4 | 0.0286 → 0.0090 (0.0237) | 10.49 → 9.69 (9.73) |
-| OLMoE | INT3 | 0.1049 → 0.0385 (0.0777) | 30.23 → 18.64 (14.36) |
-| Qwen | INT8 | 0.0235 → 0.0175 | 9.35 → 9.28 |
-| Qwen | INT4 | 0.0861 → 0.0355 (0.0691) | 12.01 → 11.24 (10.51) |
-| Qwen | INT3 | 0.4901 → 0.3147 (0.3380) | 9555 → 1236 (288) |
+| ----- | ---- | --------------------------------------- | -------------------------------- |
+| OLMoE | INT8 | 0.0085 → 0.0064                         | 9.39 → 9.32                      |
+| OLMoE | INT4 | 0.0286 → 0.0090 (0.0237)                | 10.49 → 9.69 (9.73)              |
+| OLMoE | INT3 | 0.1049 → 0.0385 (0.0777)                | 30.23 → 18.64 (14.36)            |
+| Qwen  | INT8 | 0.0235 → 0.0175                         | 9.35 → 9.28                      |
+| Qwen  | INT4 | 0.0861 → 0.0355 (0.0691)                | 12.01 → 11.24 (10.51)            |
+| Qwen  | INT3 | 0.4901 → 0.3147 (0.3380)                | 9555 → 1236 (288)                |
+
 
 Gold perplexity is 8.36 (OLMoE) and 7.97 (Qwen). Full numbers and intervals in
 `results/<model>/summary.md`; everything below points at a file rather than repeating it.
@@ -64,7 +66,7 @@ reproduces `uniform` to several decimals. But state the caveat plainly: it prote
 OLMoE and 5.0% on Qwen, giving a token×layer exposure gap of 140× / 477× against the
 routers. It rules out "any high-precision parameters help" and nothing stronger.
 
-**The `attention` control is the interesting one, and it splits.** At INT4 it behaves much
+**The** `attention` **control is the interesting one, and it splits.** At INT4 it behaves much
 like `uniform` on routing — at OLMoE INT4, KL is 0.0286 (uniform), 0.0237 (attention),
 0.0090 (mixed) — recovering only 25.1% (OLMoE) and 33.6% (Qwen) of `mixed`'s routing-KL
 reduction despite holding 128× the router parameter budget (3.88% of OLMoE, 2.81% of Qwen,
@@ -135,21 +137,26 @@ procedure.
 
 In rough priority order:
 
-1. **Write the prose against the `\todo`s.** This is the bulk of the remaining work, and
-   there is room for it.
+1. **Write the prose against the** `\todo`**s.** This is the bulk of the remaining work, and
+  there is room for it.
 2. **Write the mandatory "AI Disclosure and Reflection" section.** Tomer and Yoav have to
-   write this themselves; it cannot be delegated.
-3. **Prior-art check is still running** (`notes/prior_art.md`, being written by another
-   agent). Whether anyone has already isolated router precision specifically will affect
-   how Related Work is framed and possibly how the contribution is worded. Do not
-   finalise Related Work until it lands.
+  write this themselves; it cannot be delegated.
+3. **Read the three OpenReview papers in a browser** — `RouteQuant` (`bPsPPI65hf`) above
+   all, since it argues full-precision routers are *insufficient* and is the claim we most
+   directly engage. OpenReview blocks non-browser clients, so this is the one task that
+   cannot be automated from the cluster. `notes/prior_art.md` has the rest of the
+   prior-art verdict: our novelty claim needed narrowing, because EAQuant's Table 4 does
+   contain a router-precision comparison on OLMoE. That is already fixed in Related Work,
+   but RouteQuant could move it again.
 4. **Frame the two hedges deliberately**, since a careful reader will find them anyway:
-   the attention control's perplexity result, and the placebo's exposure mismatch.
+  the attention control's perplexity result, and the placebo's exposure mismatch.
 
+```
 Optional, only if time allows — none of these are blocking, and the audit ranks them:
 a layer-distributed placebo (placement-matched, needs ~10 lines of code plus a short GPU
-run), `attention` at INT8 to complete that row, extra placebo seeds, and a single cheap
+run), attention at INT8 to complete that row, extra placebo seeds, and a single cheap
 C4 robustness point (OLMoE, INT4, gold + uniform + mixed, ~35 min).
+```
 
 For LaTeX preflight there is a local toolchain:
 
