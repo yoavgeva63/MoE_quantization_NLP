@@ -328,9 +328,12 @@ rests on intervals being disjoint.}
 %   isolating the router as a variable. Nobody measures the isolated, calibration-free
 %   effect against a placebo, and nobody separates the two mechanisms.
 %
-% CITATION HYGIENE -- READ custom.bib's HEADER FIRST. routequant2026 (anonymous) and
-%   fang2026router (Fang & Huang, withdrawn) are TWO DIFFERENT PAPERS with different
-%   theses. An earlier version of our own notes conflated them. Do not merge them back.
+% CITATION HYGIENE -- READ custom.bib's HEADER FIRST. Corrected 2026-08-22 after reading
+%   the RouteQuant PDF: it is published in TMLR 07/2026 and authored by Fang and Huang,
+%   the same pair as fang2026router. So the two entries are one research line, and the
+%   withdrawn ICLR submission is most likely an earlier draft. Do not cite both as
+%   independent support for the same claim. Our notes first merged them, then wrongly
+%   split them as "two different papers"; the truth is one group, two stages.
 % =====================================================================================
 \section{Related Work}
 \label{sec:related}
@@ -367,17 +370,23 @@ that calibration \emph{helps}, but leave open how much of the problem a free str
 choice already solves. Our design is the calibration-free lower bound against which such
 methods should be credited.}
 
-\paragraph{The disagreement we adjudicate.}
+\paragraph{The apparent disagreement, and why it is not one.}
 \todo{\citet{routequant2026} argue that freezing the router is \emph{insufficient},
-because quantization error in expert outputs still shifts the next layer's router
-logits; they therefore quantize the router and correct it with a Rank-Aware Jaccard Loss
-and a Gap Hinge Loss. This is a mechanistic claim about \emph{where} the residual drift
-comes from, and it is exactly what our four-cell attribution measures directly.
-Separately, \citet{fang2026router} find that most routing errors are near-neighbour rank
-flips at the top-$k$ boundary --- the strongest a priori reason to expect router
-protection to underperform, and the failure mode that motivates the margin-aware
-top-$k$ widening we substitute for the proposal's contingency plan
-(Section~\ref{sec:deviations}).}
+because quantization error in expert outputs still shifts the next layer's router logits;
+they therefore quantize the router and correct it with a Rank-Aware Jaccard Loss and a Gap
+Hinge Loss. Read carefully, their evidence supports our result rather than contradicting
+it, and this paragraph is where we say so. Their Table~8 holds experts at W4A4 and varies
+only the router. \emph{Without} their alignment losses, the full-precision router is the
+best of the three settings on OLMoE (57.41 against 56.88 and 56.96 for W4A8 and W8A8
+routers) and on DeepSeek-MoE (55.23 against 54.84 and 54.95), and ties on Qwen3-MoE.
+\emph{With} the alignment losses, the quantized router overtakes it by 0.3--0.4 points on
+all three. So the deciding variable is not router precision but whether a calibration
+objective is available to re-align a quantized router: absent one, protecting the router
+is the better choice, which is exactly the regime we measure. Frame our contribution as
+characterising the calibration-free branch of their own finding, quantitatively and with
+routing metrics they do not report --- not as adjudicating a contradiction.
+\note{This resolution is the single most useful thing the prior-art check produced. Do not
+soften it into ``the literature disagrees''; the numbers above are in their paper.}}
 
 \paragraph{Bit-width sweeps over MoE sub-structures.}
 \todo{\citet{li2024quantmoebench} sweep bit-widths across MoE sub-structures and are our

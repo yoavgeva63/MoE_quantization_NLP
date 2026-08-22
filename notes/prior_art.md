@@ -84,6 +84,65 @@ evaluation protocol (sequence length, stride, split handling), but until someone
 it, the paper must claim *the same model*, never *directly comparable numbers*. Any
 sentence putting our perplexities beside theirs needs to go or be hedged explicitly.
 
+## 1b. RouteQuant, read 2026-08-22 — the disagreement dissolves in our favour
+
+Obtained the PDF (`8311_Beyond_Freezing_the_Route.pdf`). Two headline corrections first:
+it is **published in TMLR 07/2026**, not anonymous and not under review, and its authors
+are **Yi-Zeng Fang and Juinn-Dar Huang** — the same pair as the withdrawn ICLR submission
+we had recorded as a *separate* paper. Our notes first merged those two and were then
+"corrected" into splitting them; the truth is one research group at two stages. Do not
+cite both as independent support for the same claim.
+
+**It does contain a controlled router-precision experiment on OLMoE** — Table 19,
+"Controlled comparison of different router precisions on OLMoE under W4A4 expert
+quantization", with expert setting, calibration data and smoothing held fixed. Router at
+W4A8 / W8A8 / FP16 gives average accuracy 57.73 / 57.83 / 57.41, so the full-precision
+router is *worst*. Taken alone that reads as a refutation of our thesis.
+
+**It is not, and their Table 8 is why.** That table splits the same comparison by whether
+their alignment losses (RAJ/GH) are active:
+
+| Model | FP16 router | Quantized router, no alignment | Quantized router, with alignment |
+|---|---|---|---|
+| OLMoE | **57.41** | 56.88 / 56.96 | 57.73 / 57.83 |
+| DeepSeek-MoE | **55.23** | 54.84 / 54.95 | 55.50 / 55.59 |
+| Qwen3-MoE | 63.52 | 63.51 / 63.58 | 63.87 / 63.95 |
+
+Without the alignment objectives, **the full-precision router wins on OLMoE and
+DeepSeek-MoE and ties on Qwen3-MoE.** Router quantization only overtakes protection once a
+calibration-fitted alignment loss re-aligns it. Their own numbers therefore say: absent
+calibration, protect the router — which is precisely our regime and our result.
+
+So the framing shifts, and improves. We are not adjudicating a contradiction; we are
+characterising the calibration-free branch of their finding, with routing metrics they do
+not report. Their headline "freezing the router is insufficient" is true *given* their
+calibration machinery and false without it, and they never state that contingency plainly.
+
+**What they have that overlaps ours.** A router-consistency metric ("Match Score",
+Appendix C) on OLMoE; rank-flip confusion matrices of top-$k$ indices versus FP16
+(Figures 1, 4, 9, 10), which is a close relative of our top-1 flip rate; and the upstream
+premise of our Part 2 stated qualitatively — a full-precision router still receives
+perturbed inputs — with per-layer L2 distance between FP16 and quantized expert outputs in
+Figure 8.
+
+**What they do not have.** No routing KL and no expert-usage entropy or collapse analysis
+(zero occurrences of either in the text). No confidence intervals anywhere; Table 20
+reports mean±std across five calibration seeds, which is variability of their method, not
+uncertainty on a policy contrast. No placebo or exposure-matched control, so no test of
+whether the effect is router-specific. No quantified split of routing error into
+router-weight versus upstream-activation sources — they motivate the distinction and never
+measure the partition. Weight-and-activation quantization at W4A4/W4A8 only, no weight-only
+sweep, and no INT3. Their second and third architectures are DeepSeek-MoE and Qwen3-MoE,
+so our Qwen1.5-MoE-A2.7B is not duplicated.
+
+**Net effect on the claim.** Router protection is neither novel nor uncontested, and two
+published papers now report router-precision comparisons on OLMoE. What remains ours: the
+calibration-free isolation, the routing-behaviour measurement of it with bootstrap
+intervals, the two control conditions that test specificity, the per-layer collapse
+result, and the quantified mechanism attribution. That is a narrower contribution than the
+proposal imagined and a considerably more interesting one, because it explains why the
+literature appears to disagree.
+
 ## 2. Threat ranking
 
 **1. EAQuant (arXiv:2506.13329v3), Fu et al. 2025 — partial hit, must be cited precisely.**
@@ -118,17 +177,19 @@ analysis, and do not let a reviewer think we did.
 
 ## 4. What could not be checked
 
-Everything on OpenReview: **RouteQuant** (`bPsPPI65hf`), **ExpertQuant / "Router Choice
-Matters"** (`kPgLp47bJf`), and **SRA-MoE**. OpenReview returns 403 to unauthenticated
-clients and its forum pages sit behind a browser check, so these were not readable from the
-cluster. They need a human with a browser. Priority order:
+**RouteQuant has since been read** (section 1b) — it did present exactly the controlled
+router-precision ablation this section warned about, and the framing was revisited
+accordingly. Still outstanding on OpenReview, which returns 403 to unauthenticated clients
+and puts its forum pages behind a browser check:
 
-- **RouteQuant is the important one.** If it already presents a controlled router-precision
-  ablation to support "freezing the router is insufficient", that is a direct hit on the
-  same variable and the framing in section 3 above has to be revisited.
-- ExpertQuant matters less; we cite it for the near-neighbour rank-flip observation.
-- SRA-MoE is reportedly close to our framing (routers kept full precision, yet upstream
-  error still shifts routing — essentially our Part 2 premise). Worth ten minutes.
+- **`kPgLp47bJf`, "Router Choice Matters" (withdrawn ICLR 2026).** Now low priority: same
+  authors as the TMLR RouteQuant paper, near-identical subtitle, almost certainly an
+  earlier draft of it. The rank-flip finding we cite it for is in the published version, so
+  the cleanest resolution is to drop this entry rather than verify it.
+- **SRA-MoE.** No identifier resolves and OpenReview search returned nothing. Reportedly
+  close to our framing (routers kept full precision, yet upstream error still shifts
+  routing — our Part 2 premise). If a browser cannot find it either, delete the citation
+  rather than ship an unverifiable entry.
 
 Also unchecked: **GEMQ** (arXiv:2605.23078) and **arXiv:2603.02217** (router calibration),
 both fetchable by `curl` if wanted; and item 7 of the original brief — whether random

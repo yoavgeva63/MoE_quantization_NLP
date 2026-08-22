@@ -78,19 +78,28 @@
 % ANONYMOUS SUBMISSION -- under review, authors deliberately unknown. Do not fill in.
 % See the header note: this is NOT the Fang & Huang paper.
 % TODO VERIFY (browser): confirm title, year and anonymity status at the forum URL.
-@misc{routequant2026,
-  title        = {Beyond Freezing the Router: Rank-Aligned Post-Training Quantization
-                  for Mixture-of-Experts Models},
-  author       = {{Anonymous}},
-  year         = {2026},
-  note         = {Anonymous submission under review},
-  howpublished = {OpenReview},
-  url          = {https://openreview.net/forum?id=bPsPPI65hf}
+% Verified 2026-08-22 from the paper PDF itself: no longer anonymous and no longer under
+% review. Published in TMLR 07/2026; authors are Fang and Huang at NYCU -- i.e. the SAME
+% authors as fang2026router below, so those two entries are almost certainly one line of
+% work, not two. Cite this published version.
+@article{routequant2026,
+  title   = {Beyond Freezing the Router: Rank-Aligned Post-Training Quantization
+             for Mixture-of-Experts Models},
+  author  = {Yi-Zeng Fang and Juinn-Dar Huang},
+  journal = {Transactions on Machine Learning Research},
+  year    = {2026},
+  note    = {Reviewed on OpenReview: \url{https://openreview.net/forum?id=bPsPPI65hf}},
+  url     = {https://openreview.net/forum?id=bPsPPI65hf}
 }
 
 % WITHDRAWN ICLR 2026 submission -- cited honestly as a withdrawn preprint, not as a
 % published paper. Source of the near-neighbour rank-flip finding.
 % TODO VERIFY (browser): confirm authors, title and withdrawal at the forum URL.
+% CAUTION: same authors and near-identical subtitle as routequant2026, which is the TMLR
+% version. This withdrawn ICLR submission is very likely an earlier draft of that same
+% paper. Its content is unverified (OpenReview is unreadable from here). Do not cite both
+% as independent support for the same point -- that double-counts one research group. The
+% published version already contains the rank-flip analysis, so prefer it and drop this.
 @misc{fang2026router,
   title        = {Router Choice Matters: Rank-Aware Post-Training Quantization for
                   {MoE} Models},
