@@ -9,8 +9,10 @@
 | mixed | INT8 | 9.2846 | 0.017484 | 12.75% | 0.1853 | 0.9996 |
 | uniform | INT4 | 12.0080 | 0.086117 | 30.62% | 0.3558 | 0.9993 |
 | mixed | INT4 | 11.2445 | 0.035489 | 17.90% | 0.2444 | 0.9995 |
+| placebo | INT4 | 12.0076 | 0.086117 | 30.62% | 0.3558 | 0.9993 |
 | uniform | INT3 | 9555.4541 | 0.490062 | 72.48% | 0.7444 | 0.9929 |
 | mixed | INT3 | 1236.4343 | 0.314730 | 55.69% | 0.6166 | 0.9964 |
+| placebo | INT3 | 9563.0391 | 0.490072 | 72.48% | 0.7444 | 0.9929 |
 
 ## Part 1 decision gate
 
@@ -33,6 +35,8 @@
 - **mixed INT3**: 4512 modules quantized, 0/24 routers quantized, bit-width check passed
 - **mixed INT4**: 4512 modules quantized, 0/24 routers quantized, bit-width check passed
 - **mixed INT8**: 4512 modules quantized, 0/24 routers quantized, bit-width check passed
+- **placebo INT3**: 4535 modules quantized, 24/24 routers quantized, bit-width check passed
+- **placebo INT4**: 4535 modules quantized, 24/24 routers quantized, bit-width check passed
 - **uniform INT3**: 4536 modules quantized, 24/24 routers quantized, bit-width check passed
 - **uniform INT4**: 4536 modules quantized, 24/24 routers quantized, bit-width check passed
 - **uniform INT8**: 4536 modules quantized, 24/24 routers quantized, bit-width check passed

@@ -27,9 +27,33 @@ set -euo pipefail
 cd "${MOEQUANT_REPO:-${SLURM_SUBMIT_DIR:-$(dirname "$0")/../..}}"
 [[ -f pyproject.toml ]] || { echo "ERROR: $PWD is not the repo root; submit from there or set MOEQUANT_REPO." >&2; exit 1; }
 
+#   sbatch scripts/slurm/run_placebo.sh olmoe
+#
+# Qwen needs the same allocation as its own sweep. The #SBATCH directives above are read
+# before this script runs, so they cannot depend on "$1"; pass the override on the command
+# line, where it takes precedence:
+#
+#   sbatch --gres=gpu:geforce_rtx_2080:5 --mem=96G scripts/slurm/run_placebo.sh qwen
+#
+# Forgetting the override is not silent: the VRAM floor below makes the preflight refuse
+# the job up front rather than let it OOM partway through the run.
+#
+# Any further arguments are the bit-widths to control, so the sweep can be extended after
+# the fact without re-running what is already on disk:
+#
+#   sbatch scripts/slurm/run_placebo.sh olmoe 8
 MODEL="${1:-olmoe}"
+if [[ $# -gt 1 ]]; then
+    BITS=("${@:2}")
+else
+    BITS=(4 3)
+fi
 
-export MOEQUANT_MIN_VRAM_GB=20
+# Match each model's real sweep: run_olmoe.sh asks for 20, run_qwen.sh for 40.
+case "${MODEL}" in
+    qwen) export MOEQUANT_MIN_VRAM_GB=40 ;;
+    *) export MOEQUANT_MIN_VRAM_GB=20 ;;
+esac
 
 # shellcheck disable=SC1091
 source scripts/slurm/_preflight.sh
@@ -42,7 +66,7 @@ fi
 "${PY_BIN}" scripts/run.py \
     --config "configs/${MODEL}.yaml" \
     --policies placebo \
-    --bits 4 3 \
+    --bits "${BITS[@]}" \
     --keep-going \
     --skip-existing
 
