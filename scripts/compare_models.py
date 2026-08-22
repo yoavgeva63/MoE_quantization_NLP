@@ -29,7 +29,7 @@ from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 POLICY_STYLE = {
     "placebo": {
         "color": "#8172B2", "marker": "", "linewidth": 6.5, "alpha": 0.5, "zorder": 1,
-        "label": "placebo (random 0.02% protected)",
+        "label": "placebo (parameter-count-matched)",
     },
     "uniform": {
         "color": "#C44E52", "marker": "o", "linewidth": 1.8, "zorder": 3,
@@ -38,6 +38,13 @@ POLICY_STYLE = {
     "mixed": {
         "color": "#55A868", "marker": "s", "linewidth": 1.8, "zorder": 3,
         "label": "mixed (router in BF16)",
+    },
+    # Drawn thicker and on top: it is the newest series and it has to be separable from the
+    # placebo underlay it passes through. The colour matches `attention` in analyze.py and
+    # collapse.py so the policy has one identity across every figure in the paper.
+    "attention": {
+        "color": "#CCB974", "marker": "^", "linewidth": 2.4, "zorder": 4,
+        "label": "attention (attention in BF16)",
     },
 }
 MODEL_LINESTYLE = {0: "-", 1: "--", 2: ":"}
@@ -116,21 +123,31 @@ def plot_panel(ax, models: list[dict], getter, ylabel: str, logy: bool = False) 
 
 
 def headline_figure(models: list[dict], out_pdf: Path) -> None:
-    """The two-panel figure for the front of the paper: routing drift and expert changes."""
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
-    plot_panel(axes[0], models, lambda r: r["routing"]["pooled"]["kl"],
-               "Routing KL(gold || candidate)", logy=True)
-    axes[0].set_title("Routing drift")
-    plot_panel(axes[1], models, lambda r: r["routing"]["pooled"]["top1_error"],
-               "Top-1 expert flip rate")
-    axes[1].set_title("Top-1 expert changes")
+    """The front-of-paper figure: routing drift, expert changes, and end-task quality.
 
-    handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=2, frameon=False, fontsize=8)
-    fig.suptitle("Protecting the router alone, across two MoE architectures")
-    fig.tight_layout(rect=(0, 0.14, 1, 1))
-    fig.savefig(out_pdf)
-    plt.close(fig)
+    The third panel is not decoration. `attention` tracks `uniform` on the two routing
+    panels and matches or beats `mixed` on perplexity, so a two-panel figure would show
+    only half of the result and would let a reader infer the wrong ordering for the half it
+    omits. The base font size is raised because the figure is reduced to \\textwidth.
+    """
+    with plt.rc_context({"font.size": 13.5, "axes.titlesize": 15.0}):
+        fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.3))
+        plot_panel(axes[0], models, lambda r: r["routing"]["pooled"]["kl"],
+                   "Routing KL(gold || candidate)", logy=True)
+        axes[0].set_title("Routing drift")
+        plot_panel(axes[1], models, lambda r: r["routing"]["pooled"]["top1_error"],
+                   "Top-1 expert flip rate")
+        axes[1].set_title("Top-1 expert changes")
+        plot_panel(axes[2], models, lambda r: r["lm"]["perplexity"],
+                   "WikiText-2 perplexity", logy=True)
+        axes[2].set_title("End-task quality")
+
+        handles, labels = axes[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc="lower center", ncol=4, frameon=False, fontsize=11)
+        fig.suptitle("Protecting the router alone, across two MoE architectures")
+        fig.tight_layout(rect=(0, 0.16, 1, 1))
+        fig.savefig(out_pdf)
+        plt.close(fig)
 
 
 def detail_figures(models: list[dict], out_pdf: Path) -> None:
@@ -215,6 +232,55 @@ def reproduction_gap(models: list[dict]) -> list[str]:
     return lines
 
 
+def attention_contrast(models: list[dict]) -> list[str]:
+    """How much of `mixed`'s benefit does the exposure-matched control reproduce?
+
+    `attention` protects ~128x the router parameter budget with the same every-token,
+    every-layer exposure the routers have, so the fraction of `mixed`'s improvement it
+    recovers is the quantity that separates "routers are special" from "any high-precision
+    island on the main path helps". The split is reported per metric because it is not the
+    same on routing and on perplexity - which is the point.
+    """
+    lines = [
+        "## The `attention` control: routing versus perplexity",
+        "",
+        "`captured` is the fraction of `mixed`'s improvement over `uniform` that "
+        "`attention` reproduces. Negative means `attention` is better than `mixed`.",
+        "",
+        "| Model | Bits | Metric | uniform | mixed | attention | mixed captured | "
+        "attention captured |",
+        "|-------|------|--------|---------|-------|-----------|----------------|"
+        "--------------------|",
+    ]
+    metrics = [
+        ("routing KL", lambda r: r["routing"]["pooled"]["kl"]["mean"], "{:.6f}"),
+        ("top-1 flip rate", lambda r: r["routing"]["pooled"]["top1_error"]["mean"], "{:.4f}"),
+        ("perplexity", lambda r: r["lm"]["perplexity"], "{:.4f}"),
+    ]
+    for model in models:
+        for bits in sorted(
+            {run["bits"] for run in model["runs"] if run.get("bits")}, reverse=True
+        ):
+            by_policy = {
+                run["policy"]: run for run in model["runs"] if run.get("bits") == bits
+            }
+            if not {"uniform", "mixed", "attention"} <= set(by_policy):
+                continue
+            for name, getter, fmt in metrics:
+                base = getter(by_policy["uniform"])
+                mix = getter(by_policy["mixed"])
+                att = getter(by_policy["attention"])
+                span = base - mix
+                captured = (base - att) / span if span else float("nan")
+                lines.append(
+                    f"| {model['label']} | INT{bits} | {name} "
+                    f"| {fmt.format(base)} | {fmt.format(mix)} | {fmt.format(att)} "
+                    f"| 100.0% | {captured * 100:.1f}% |"
+                )
+    lines.append("")
+    return lines
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-dir", nargs="+", required=True)
@@ -227,7 +293,9 @@ def main() -> None:
 
     headline_figure(models, out_dir / "headline.pdf")
     detail_figures(models, out_dir / "comparison.pdf")
-    body = "\n".join(comparison_table(models) + reproduction_gap(models))
+    body = "\n".join(
+        comparison_table(models) + reproduction_gap(models) + attention_contrast(models)
+    )
     (out_dir / "comparison.md").write_text(body)
 
     print(body)

@@ -279,10 +279,15 @@ def router_verdict(rows: list[dict]) -> list[str]:
         if r["policy"] in ("uniform", "placebo", "attention") and r["ok"]
         and r["routers"].get("num_layers")
     ]
+    # Name the policies actually covered rather than hard-coding them: `attention` joined
+    # the quantized-router group after this sentence was first written.
+    quantized_policies = sorted({r["policy"] for r in quantized})
+    named = ", ".join(f"`{p}`" for p in quantized_policies[:-1])
+    named = f"{named} and `{quantized_policies[-1]}`" if named else f"`{quantized_policies[-1]}`"
     lines += [
         "",
         f"Every `mixed` run's router weights are bit-identical to gold in every layer "
-        f"({len(protected)} runs checked), and every `uniform` and `placebo` run's routers "
+        f"({len(protected)} runs checked), and every {named} run's routers "
         f"sit at or below their INT-*N* level ceiling in every channel with no layer "
         f"matching gold ({len(quantized)} runs checked). That is direct evidence for the "
         "single-variable claim - `mixed` and `uniform` differ in the routers and nothing "

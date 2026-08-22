@@ -2,7 +2,7 @@
 
 Machine-checked from the saved artifacts, with no GPU and no model download. Regenerate with `python scripts/verify_offline.py --results-dir results/qwen`.
 
-**All 9 runs pass.**
+**All 12 runs pass.**
 
 ## Router weights, every channel of every layer
 
@@ -12,10 +12,13 @@ Read from each run's stored `router_weights`, which are the dequantized weights 
 |-----|--------|--------------------|-------------------------|---------|------------------------------|---------|
 | gold BF16 | 24 | 1,440 | 1,107 | n/a (protected) | **24/24** | PASS |
 | mixed INT8 | 24 | 1,440 | 1,107 | n/a (protected) | **24/24** | PASS |
+| placebo INT8 | 24 | 1,440 | 46 | 256 | **0/24** | PASS |
 | uniform INT8 | 24 | 1,440 | 46 | 256 | **0/24** | PASS |
+| attention INT4 | 24 | 1,440 | 16 | 16 | **0/24** | PASS |
 | mixed INT4 | 24 | 1,440 | 1,107 | n/a (protected) | **24/24** | PASS |
 | placebo INT4 | 24 | 1,440 | 16 | 16 | **0/24** | PASS |
 | uniform INT4 | 24 | 1,440 | 16 | 16 | **0/24** | PASS |
+| attention INT3 | 24 | 1,440 | 8 | 8 | **0/24** | PASS |
 | mixed INT3 | 24 | 1,440 | 1,107 | n/a (protected) | **24/24** | PASS |
 | placebo INT3 | 24 | 1,440 | 8 | 8 | **0/24** | PASS |
 | uniform INT3 | 24 | 1,440 | 8 | 8 | **0/24** | PASS |
@@ -24,15 +27,18 @@ Read from each run's stored `router_weights`, which are the dequantized weights 
 
 - **gold BF16** (identical to gold in every layer): bit-identical to gold in 24/24 layers
 - **mixed INT8** (identical to gold in every layer (routers protected)): bit-identical to gold in 24/24 layers
+- **placebo INT8** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 46 of 256 levels per channel
 - **uniform INT8** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 46 of 256 levels per channel
+- **attention INT4** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 16 of 16 levels per channel
 - **mixed INT4** (identical to gold in every layer (routers protected)): bit-identical to gold in 24/24 layers
 - **placebo INT4** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 16 of 16 levels per channel
 - **uniform INT4** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 16 of 16 levels per channel
+- **attention INT3** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 8 of 8 levels per channel
 - **mixed INT3** (identical to gold in every layer (routers protected)): bit-identical to gold in 24/24 layers
 - **placebo INT3** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 8 of 8 levels per channel
 - **uniform INT3** (quantized in every layer, at most 2**bits levels per channel): quantized in all 24 layers, at most 8 of 8 levels per channel
 
-Every `mixed` run's router weights are bit-identical to gold in every layer (4 runs checked), and every `uniform` and `placebo` run's routers sit at or below their INT-*N* level ceiling in every channel with no layer matching gold (5 runs checked). That is direct evidence for the single-variable claim - `mixed` and `uniform` differ in the routers and nothing else - computed from the artifacts rather than from the quantizer's own bookkeeping.
+Every `mixed` run's router weights are bit-identical to gold in every layer (4 runs checked), and every `attention`, `placebo` and `uniform` run's routers sit at or below their INT-*N* level ceiling in every channel with no layer matching gold (8 runs checked). That is direct evidence for the single-variable claim - `mixed` and `uniform` differ in the routers and nothing else - computed from the artifacts rather than from the quantizer's own bookkeeping.
 
 The INT8 rows show fewer than 256 levels, which is expected rather than a shortfall: with a per-channel scale of `max|w| / 127` and roughly Gaussian router weights, the 2048 values in a channel do not reach the extreme codes.
 

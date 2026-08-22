@@ -38,7 +38,7 @@ Read from each run's stored `router_weights`, which are the dequantized weights 
 - **placebo INT3** (quantized in every layer, at most 2**bits levels per channel): quantized in all 16 layers, at most 8 of 8 levels per channel
 - **uniform INT3** (quantized in every layer, at most 2**bits levels per channel): quantized in all 16 layers, at most 8 of 8 levels per channel
 
-Every `mixed` run's router weights are bit-identical to gold in every layer (4 runs checked), and every `uniform` and `placebo` run's routers sit at or below their INT-*N* level ceiling in every channel with no layer matching gold (8 runs checked). That is direct evidence for the single-variable claim - `mixed` and `uniform` differ in the routers and nothing else - computed from the artifacts rather than from the quantizer's own bookkeeping.
+Every `mixed` run's router weights are bit-identical to gold in every layer (4 runs checked), and every `attention`, `placebo` and `uniform` run's routers sit at or below their INT-*N* level ceiling in every channel with no layer matching gold (8 runs checked). That is direct evidence for the single-variable claim - `mixed` and `uniform` differ in the routers and nothing else - computed from the artifacts rather than from the quantizer's own bookkeeping.
 
 The INT8 rows show fewer than 256 levels, which is expected rather than a shortfall: with a per-channel scale of `max|w| / 127` and roughly Gaussian router weights, the 2048 values in a channel do not reach the extreme codes.
 
