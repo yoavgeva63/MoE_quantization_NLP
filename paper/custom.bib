@@ -1,0 +1,379 @@
+% =====================================================================================
+% Bibliography for "Protecting the Router Is Necessary but Not Sufficient".
+%
+% PROVENANCE OF THIS FILE
+% Every arXiv identifier below was resolved against the live arXiv API before being
+% written here, and the author lists are the ones arXiv returned. Nothing in this file
+% was reconstructed from memory. If you add an entry, resolve it first.
+%
+% -------------------------------------------------------------------------------------
+% READ THIS BEFORE EDITING: two DISTINCT papers our internal notes once conflated
+% -------------------------------------------------------------------------------------
+% An earlier draft of OVERVIEW.md claimed that the proposal's "Anonymous (2026)" entry
+% and the "Fang & Huang" paper were the same work. They are NOT. They are two separate
+% submissions with different theses, and both are cited here separately:
+%
+%   routequant2026   "Beyond Freezing the Router: Rank-Aligned Post-Training
+%                     Quantization for Mixture-of-Experts Models"
+%                    -> STILL ANONYMOUS, under review. This is the proposal's
+%                       "Anonymous (2026)". Thesis: a full-precision router is
+%                       INSUFFICIENT, because expert-output quantization error still
+%                       shifts the next layer's router logits. Quantizes the router and
+%                       corrects with Rank-Aware Jaccard Loss + Gap Hinge Loss.
+%                    -> DO NOT invent authors for this entry.
+%
+%   fang2026router   "Router Choice Matters: Rank-Aware Post-Training Quantization for
+%                     MoE Models", Yi-Zeng Fang and Juinn-Dar Huang.
+%                    -> WITHDRAWN ICLR 2026 submission. This is the real "Fang & Huang",
+%                       and it is the source of the near-neighbour rank-flip finding
+%                       (most routing errors are rank flips around the top-k boundary).
+%
+% Also note: the proposal cited VSRAQ as "Park et al. (2026)". That attribution is
+% CORRECT -- arXiv confirms the first author is Hancheol Park.
+%
+% VERIFICATION STATUS OF THE NON-arXiv ENTRIES
+% OpenReview's API returns HTTP 403 to unauthenticated clients and its public forum
+% pages sit behind a browser check, so routequant2026, fang2026router and sramoe could
+% not be machine-verified from this machine. Their metadata is as supplied in our
+% verified research notes. Open each forum URL in a browser and confirm before
+% submitting. sramoe additionally has no forum ID recorded -- see its TODO.
+% =====================================================================================
+
+
+% -------------------------------------------------------------------------------------
+% Quantization of Mixture-of-Experts models: the papers we position against
+% -------------------------------------------------------------------------------------
+
+% Verified: arXiv API, 2506.13329v3, published 2025-06-16.
+% Runs experts at W4A4 with the router at W8A8 -- i.e. router protection is ALREADY
+% their baseline, which is why we do not claim it as our novelty. Also benchmarks
+% OLMoE-1B-7B, so our primary model's numbers are comparable to theirs.
+@misc{fu2025eaquant,
+  title         = {{EAQuant}: Enhancing Post-Training Quantization for {MoE} Models via
+                   Expert-Aware Optimization},
+  author        = {Zhongqian Fu and Tianyi Zhao and Ning Ding and Xianzhi Yu and
+                   Xiaosong Li and Yehui Tang and Yunhe Wang},
+  year          = {2025},
+  eprint        = {2506.13329},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2506.13329}
+}
+
+% Verified: arXiv API, 2606.05688v1, published 2026-06-04.
+% The proposal's "Park et al. (2026)"; first author is indeed Hancheol Park.
+% Calibration-based router alignment: a value-alignment term plus a structure-alignment
+% term, evaluated at 4 bits (W4A16 / NVFP4). Calibration is exactly what we do without.
+@misc{park2026vsraq,
+  title         = {Value-and-Structure Alignment for Routing-Consistent Quantization of
+                   Mixture-of-Experts Models},
+  author        = {Hancheol Park and Geonho Lee and Tairen Piao and Tae-Ho Kim},
+  year          = {2026},
+  eprint        = {2606.05688},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2606.05688}
+}
+
+% ANONYMOUS SUBMISSION -- under review, authors deliberately unknown. Do not fill in.
+% See the header note: this is NOT the Fang & Huang paper.
+% TODO VERIFY (browser): confirm title, year and anonymity status at the forum URL.
+@misc{routequant2026,
+  title        = {Beyond Freezing the Router: Rank-Aligned Post-Training Quantization
+                  for Mixture-of-Experts Models},
+  author       = {{Anonymous}},
+  year         = {2026},
+  note         = {Anonymous submission under review},
+  howpublished = {OpenReview},
+  url          = {https://openreview.net/forum?id=bPsPPI65hf}
+}
+
+% WITHDRAWN ICLR 2026 submission -- cited honestly as a withdrawn preprint, not as a
+% published paper. Source of the near-neighbour rank-flip finding.
+% TODO VERIFY (browser): confirm authors, title and withdrawal at the forum URL.
+@misc{fang2026router,
+  title        = {Router Choice Matters: Rank-Aware Post-Training Quantization for
+                  {MoE} Models},
+  author       = {Yi-Zeng Fang and Juinn-Dar Huang},
+  year         = {2026},
+  note         = {Withdrawn submission to the International Conference on Learning
+                  Representations (ICLR) 2026},
+  howpublished = {OpenReview},
+  url          = {https://openreview.net/forum?id=kPgLp47bJf}
+}
+
+% Verified: arXiv API, 2406.08155v2, published 2024-06-12.
+% NOTE the retitle: v1 circulated as "Examining Post-Training Quantization for
+% Mixture-of-Experts: A Benchmark"; v2 is titled "QuantMoE-Bench". We cite the current
+% title. Sweeps bit-widths across MoE sub-structures, so it is our closest neighbour and
+% must be explicitly differentiated in Related Work.
+@misc{li2024quantmoebench,
+  title         = {{QuantMoE-Bench}: Examining Post-Training Quantization for
+                   Mixture-of-Experts},
+  author        = {Pingzhi Li and Xiaolong Jin and Zhen Tan and Yu Cheng and
+                   Tianlong Chen},
+  year          = {2024},
+  eprint        = {2406.08155},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2406.08155}
+}
+
+% Verified: arXiv API, 2310.02410v1, published 2023-10-03.
+% Expert FFNs tolerate ~2-bit quantization while attention does not. This is the
+% justification for the `attention` control policy the code also supports.
+@misc{kim2023moqe,
+  title         = {Mixture of Quantized Experts ({MoQE}): Complementary Effect of
+                   Low-bit Quantization and Robustness},
+  author        = {Young Jin Kim and Raffy Fahim and Hany Hassan Awadalla},
+  year          = {2023},
+  eprint        = {2310.02410},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2310.02410}
+}
+
+% Verified: arXiv API, 2605.23078v1, published 2026-05-21.
+% Independently reports that routers are <0.04% of MoE parameters -- corroborating our
+% own census (0.0303% on OLMoE, 0.0206% on Qwen) -- and fine-tunes them.
+@misc{deng2026gemq,
+  title         = {{GEMQ}: Global Expert-Level Mixed-Precision Quantization for {MoE}
+                   {LLMs}},
+  author        = {Jianing Deng and Song Wang and Dongwei Wang and Zijie Liu and
+                   Tianlong Chen and Huanrui Yang and Jingtong Hu},
+  year          = {2026},
+  eprint        = {2605.23078},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2605.23078}
+}
+
+% Verified: arXiv API, 2603.02217v1, published 2026-02-10.
+% Argues retraining-free MoE compression is not enough and that the router needs
+% calibration -- the opposing position to our calibration-free framing.
+@misc{hyeon2026retrainingfree,
+  title         = {Is Retraining-Free Enough? The Necessity of Router Calibration for
+                   Efficient {MoE} Compression},
+  author        = {Sieun Hyeon and Jaeyoung Do},
+  year          = {2026},
+  eprint        = {2603.02217},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2603.02217}
+}
+
+% TODO VERIFY -- NO IDENTIFIER RESOLVED.
+% We have this paper in our notes as an OpenReview submission titled "Output-Aware
+% Selective Router Alignment for MoE Quantization", making the point that routers are
+% usually left in full precision because they are small, yet errors from preceding
+% layers still alter routing. We could not recover its forum ID or author list from this
+% machine (OpenReview search returned nothing and its API is blocked), so it is left
+% anonymous with no URL. BEFORE CITING: find the forum, fill in the URL, and replace the
+% author field if the submission is de-anonymised. If you cannot find it, DELETE this
+% entry and remove the \citep{sramoe} calls rather than shipping an unverifiable
+% reference.
+@misc{sramoe,
+  title        = {Output-Aware Selective Router Alignment for {MoE} Quantization},
+  author       = {{Anonymous}},
+  year         = {2026},
+  note         = {Anonymous submission under review; identifier not yet verified},
+  howpublished = {OpenReview}
+}
+
+
+% -------------------------------------------------------------------------------------
+% Post-training quantization background (all calibration-based; we are not)
+% -------------------------------------------------------------------------------------
+
+% Verified: arXiv API, 2210.17323v2, published 2022-10-31. Published at ICLR 2023.
+@inproceedings{frantar2023gptq,
+  title     = {{GPTQ}: Accurate Post-Training Quantization for Generative Pre-trained
+               Transformers},
+  author    = {Elias Frantar and Saleh Ashkboos and Torsten Hoefler and Dan Alistarh},
+  booktitle = {The Eleventh International Conference on Learning Representations},
+  year      = {2023},
+  url       = {https://arxiv.org/abs/2210.17323}
+}
+
+% Verified: arXiv API, 2306.00978v6, published 2023-06-01. Published at MLSys 2024.
+@inproceedings{lin2024awq,
+  title     = {{AWQ}: Activation-aware Weight Quantization for {LLM} Compression and
+               Acceleration},
+  author    = {Ji Lin and Jiaming Tang and Haotian Tang and Shang Yang and
+               Wei-Ming Chen and Wei-Chen Wang and Guangxuan Xiao and Xingyu Dang and
+               Chuang Gan and Song Han},
+  booktitle = {Proceedings of Machine Learning and Systems (MLSys)},
+  year      = {2024},
+  url       = {https://arxiv.org/abs/2306.00978}
+}
+
+% Verified: arXiv API, 2211.10438v7, published 2022-11-18. Published at ICML 2023.
+@inproceedings{xiao2023smoothquant,
+  title     = {{SmoothQuant}: Accurate and Efficient Post-Training Quantization for
+               Large Language Models},
+  author    = {Guangxuan Xiao and Ji Lin and Mickael Seznec and Hao Wu and
+               Julien Demouth and Song Han},
+  booktitle = {Proceedings of the 40th International Conference on Machine Learning},
+  year      = {2023},
+  url       = {https://arxiv.org/abs/2211.10438}
+}
+
+% Verified: arXiv API, 2208.07339v2, published 2022-08-15. Published at NeurIPS 2022.
+% Also the source of the compute-capability 7.5 requirement noted in our Setup section.
+@inproceedings{dettmers2022llmint8,
+  title     = {{LLM.int8()}: 8-bit Matrix Multiplication for Transformers at Scale},
+  author    = {Tim Dettmers and Mike Lewis and Younes Belkada and Luke Zettlemoyer},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2022},
+  url       = {https://arxiv.org/abs/2208.07339}
+}
+
+
+% -------------------------------------------------------------------------------------
+% Mixture-of-Experts architectures
+% -------------------------------------------------------------------------------------
+
+% Verified: arXiv API, 1701.06538v1, published 2017-01-23. Published at ICLR 2017.
+@inproceedings{shazeer2017outrageously,
+  title     = {Outrageously Large Neural Networks: The Sparsely-Gated
+               Mixture-of-Experts Layer},
+  author    = {Noam Shazeer and Azalia Mirhoseini and Krzysztof Maziarz and Andy Davis
+               and Quoc Le and Geoffrey Hinton and Jeff Dean},
+  booktitle = {International Conference on Learning Representations},
+  year      = {2017},
+  url       = {https://arxiv.org/abs/1701.06538}
+}
+
+% Verified: arXiv API, 2101.03961v3, published 2021-01-11. Published in JMLR 2022.
+@article{fedus2022switch,
+  title   = {Switch Transformers: Scaling to Trillion Parameter Models with Simple and
+             Efficient Sparsity},
+  author  = {William Fedus and Barret Zoph and Noam Shazeer},
+  journal = {Journal of Machine Learning Research},
+  volume  = {23},
+  number  = {120},
+  pages   = {1--39},
+  year    = {2022},
+  url     = {https://arxiv.org/abs/2101.03961}
+}
+
+% Verified: arXiv API, 2401.04088v1, published 2024-01-08. 26 authors; truncated with
+% "and others" rather than guessing at the tail.
+@misc{jiang2024mixtral,
+  title         = {Mixtral of Experts},
+  author        = {Albert Q. Jiang and Alexandre Sablayrolles and Antoine Roux and
+                   Arthur Mensch and Blanche Savary and Chris Bamford and
+                   Devendra Singh Chaplot and Diego de las Casas and others},
+  year          = {2024},
+  eprint        = {2401.04088},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2401.04088}
+}
+
+% Verified: arXiv API, 2401.06066v1, published 2024-01-11. 17 authors; truncated.
+% Cited for the correctness trap: DeepSeek-style MoEGate holds a bare nn.Parameter and
+% calls F.linear rather than being an nn.Linear, so an nn.Linear-only quantizer walks
+% straight past the router.
+@misc{dai2024deepseekmoe,
+  title         = {{DeepSeekMoE}: Towards Ultimate Expert Specialization in
+                   Mixture-of-Experts Language Models},
+  author        = {Damai Dai and Chengqi Deng and Chenggang Zhao and R. X. Xu and
+                   Huazuo Gao and Deli Chen and Jiashi Li and Wangding Zeng and others},
+  year          = {2024},
+  eprint        = {2401.06066},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2401.06066}
+}
+
+
+% -------------------------------------------------------------------------------------
+% The two models we evaluate
+% -------------------------------------------------------------------------------------
+
+% Verified: arXiv API, 2409.02060v2, published 2024-09-03. Full 24-author list.
+% Checkpoint evaluated: allenai/OLMoE-1B-7B-0924 (16 layers, 64 experts, top-8).
+@misc{muennighoff2024olmoe,
+  title         = {{OLMoE}: Open Mixture-of-Experts Language Models},
+  author        = {Niklas Muennighoff and Luca Soldaini and Dirk Groeneveld and Kyle Lo
+                   and Jacob Morrison and Sewon Min and Weijia Shi and Pete Walsh and
+                   Oyvind Tafjord and Nathan Lambert and Yuling Gu and Shane Arora and
+                   Akshita Bhagia and Dustin Schwenk and David Wadden and
+                   Alexander Wettig and Binyuan Hui and Tim Dettmers and Douwe Kiela
+                   and Ali Farhadi and Noah A. Smith and Pang Wei Koh and
+                   Amanpreet Singh and Hannaneh Hajishirzi},
+  year          = {2024},
+  eprint        = {2409.02060},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2409.02060}
+}
+
+% Qwen1.5-MoE-A2.7B has no dedicated paper; the Qwen team released it via a blog post,
+% which is the citable primary source for its architecture (24 layers, 60 experts,
+% top-4, plus a shared expert). URL confirmed reachable (HTTP 200).
+% Cite this alongside qwen2023technical for the model family.
+@misc{qwen2024moe,
+  title        = {Qwen1.5-{MoE}: Matching 7B Model Performance with 1/3 Activated
+                  Parameters},
+  author       = {{Qwen Team}},
+  year         = {2024},
+  howpublished = {Qwen blog},
+  url          = {https://qwenlm.github.io/blog/qwen-moe/}
+}
+
+% Verified: arXiv API, 2309.16609, published 2023-09-28. 48 authors; truncated.
+@misc{qwen2023technical,
+  title         = {Qwen Technical Report},
+  author        = {Jinze Bai and Shuai Bai and Yunfei Chu and Zeyu Cui and Kai Dang and
+                   Xiaodong Deng and Yang Fan and Wenbin Ge and Yu Han and Fei Huang
+                   and others},
+  year          = {2023},
+  eprint        = {2309.16609},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CL},
+  url           = {https://arxiv.org/abs/2309.16609}
+}
+
+
+% -------------------------------------------------------------------------------------
+% Data and tooling
+% -------------------------------------------------------------------------------------
+
+% Verified: arXiv API, 1609.07843v1, published 2016-09-26. Published at ICLR 2017.
+% This is the paper that introduced WikiText-2, our evaluation corpus.
+@inproceedings{merity2017pointer,
+  title     = {Pointer Sentinel Mixture Models},
+  author    = {Stephen Merity and Caiming Xiong and James Bradbury and Richard Socher},
+  booktitle = {International Conference on Learning Representations},
+  year      = {2017},
+  url       = {https://arxiv.org/abs/1609.07843}
+}
+
+% Verified: arXiv API, 2507.16099v1, published 2025-07-21. 13 authors; truncated.
+% The library that performs the actual integer rounding; we contribute only the policy.
+@misc{or2025torchao,
+  title         = {{TorchAO}: {PyTorch}-Native Training-to-Serving Model Optimization},
+  author        = {Andrew Or and Apurva Jain and Daniel Vega-Myhre and Jesse Cai and
+                   Charles David Hernandez and Zhenrui Zheng and Driss Guessous and
+                   Vasiliy Kuznetsov and others},
+  year          = {2025},
+  eprint        = {2507.16099},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2507.16099}
+}
+
+% Verified: arXiv API, 1910.03771v5, published 2019-10-09. EMNLP 2020 system demos.
+@inproceedings{wolf2020transformers,
+  title     = {Transformers: State-of-the-Art Natural Language Processing},
+  author    = {Thomas Wolf and Lysandre Debut and Victor Sanh and Julien Chaumond and
+               Clement Delangue and Anthony Moi and Pierric Cistac and Tim Rault and
+               R{\'e}mi Louf and Morgan Funtowicz and others},
+  booktitle = {Proceedings of the 2020 Conference on Empirical Methods in Natural
+               Language Processing: System Demonstrations},
+  pages     = {38--45},
+  year      = {2020},
+  url       = {https://arxiv.org/abs/1910.03771}
+}

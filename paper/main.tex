@@ -1,0 +1,1677 @@
+% =====================================================================================
+% Protecting the Router Is Necessary but Not Sufficient
+% NLP final project (Tel Aviv University), Tomer Alfandary and Yoav Geva.
+%
+% HOW TO USE THIS FILE
+% This is a SKELETON. The experiments are finished and every number in the tables below
+% is transcribed from results/ and cross-checked against the source JSON. What is
+% missing is the prose. Every gap is marked with \todo{...}, which renders in red so
+% nothing can be missed on a read-through of the compiled PDF. Before submitting, run
+%     grep -c 'todo{' main.tex
+% and confirm it returns 0.
+%
+% Each section opens with a comment block stating the CLAIM the section has to land and
+% the EVIDENCE that supports it. Write to the claim; do not restate the tables in words.
+%
+% There is no LaTeX toolchain on the cluster machine. Compile on Overleaf. See README.md.
+% =====================================================================================
+
+\documentclass[11pt]{article}
+
+% "final" produces the non-anonymous camera-ready version, which is what a course
+% submission wants: the guidelines ask for names, IDs and emails. Switch to "review"
+% only if you want anonymised line-numbered output for internal review.
+\usepackage[final]{acl}
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{url}
+
+% Figures live in figures/, copied out of results/ (which is gitignored for PDFs).
+\graphicspath{{figures/}}
+
+% ------------------------------------------------------------------------------------
+% Float placement. With this many tables the LaTeX defaults (at most 2 floats at the top
+% of a column, at most 3 per page, and at least 20% of every page reserved for text)
+% cannot place them, and every table gets deferred to a run of float-only pages after the
+% appendix -- which silently moves the results tables out of the body. These limits let a
+% column be mostly table when it needs to be.
+% ------------------------------------------------------------------------------------
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.7}
+\renewcommand{\textfraction}{0.06}
+\renewcommand{\floatpagefraction}{0.72}
+\renewcommand{\dbltopfraction}{0.92}
+\renewcommand{\dblfloatpagefraction}{0.72}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\setcounter{dbltopnumber}{3}
+
+% ------------------------------------------------------------------------------------
+% Drafting aids. DELETE BOTH LINES BEFORE SUBMISSION, after \todo count reaches zero.
+% \todo renders visibly in red so an unwritten passage cannot survive a proofread.
+%
+% The noted build is 16 pages and says nothing about the page budget, because the notes
+% are longer than the prose they stand in for. To measure the budget, define both macros
+% to {} and recompile: the document is then 8 pages, body ~2.9, references ~0.4,
+% appendix ~4.7. That is the space the tables, figures and captions actually cost, and it
+% leaves roughly 5 of the 8 body pages for prose.
+% ------------------------------------------------------------------------------------
+% \long\def rather than \newcommand, and a \color switch rather than \textcolor, so that a
+% note spanning more than one paragraph does not end in
+% "Paragraph ended before \@textcolor was complete".
+\long\def\todo#1{{\color{red}\textbf{[TODO:}~#1\textbf{]}}}
+\long\def\note#1{{\color{blue}\textbf{[NOTE:}~#1\textbf{]}}}
+
+% Shorthands for the three policies, so the names stay identical everywhere. The reader
+% has to be able to track "uniform" vs "mixed" vs "placebo" across ten pages.
+\newcommand{\gold}{\textsc{gold}}
+\newcommand{\uniform}{\textsc{uniform}}
+\newcommand{\mixed}{\textsc{mixed}}
+\newcommand{\placebo}{\textsc{placebo}}
+\newcommand{\attn}{\textsc{attention}}
+
+\title{Protecting the Router Is Necessary but Not Sufficient:\\
+       A Placebo-Controlled Measurement of Router Precision in\\
+       Post-Training Quantization of Mixture-of-Experts Models}
+
+% \todo{Confirm the title. It should state the finding, not the topic. The current one
+% commits to the "necessary but not sufficient" framing, which is what the results
+% support: large placebo-controlled gains, but a residual the attribution explains.}
+
+\author{Tomer Alfandary \\
+  Tel Aviv University \\
+  ID 209793298 \\
+  \texttt{alfandary1@mail.tau.ac.il} \\\And
+  Yoav Geva \\
+  Tel Aviv University \\
+  ID 211719224 \\
+  \texttt{yoavgeva1@mail.tau.ac.il} \\}
+
+\begin{document}
+\maketitle
+
+% =====================================================================================
+% ABSTRACT
+% -------------------------------------------------------------------------------------
+% CLAIM: one paragraph containing (a) the question, (b) that we answer it with a
+%   controlled single-variable experiment rather than a new method, (c) the headline
+%   number, (d) the placebo control, (e) the attribution result, (f) the honest
+%   limitation. Nothing else.
+% EVIDENCE to name explicitly: 49% / 42% reduction in top-1 flips at INT4 (Table 1),
+%   disjoint bootstrap CIs in all six cells (Table 2), placebo reproduces uniform
+%   (Table 1), weight share of single-mechanism flips 43% at INT8 vs 62% at INT4
+%   (Table 4).
+% LENGTH: 150-200 words. Do not use the word "novel".
+% =====================================================================================
+\begin{abstract}
+\todo{Write the abstract last. Target 150--200 words, one paragraph, structured as:
+question $\rightarrow$ design $\rightarrow$ headline number $\rightarrow$ placebo
+$\rightarrow$ attribution $\rightarrow$ limitation. Concrete numbers to cite: router
+protection cuts top-1 expert flips by 48.9\% (OLMoE) and 41.5\% (Qwen) at INT4 with
+disjoint bootstrap confidence intervals; a parameter-matched placebo reproduces the
+unprotected baseline to six decimal places in routing KL; of the routing flips caused by
+exactly one mechanism, the router's own rounded weights account for 43.4\% at INT8 but
+62.2\% at INT4 on OLMoE, so the dominant source of drift changes with precision.}
+\end{abstract}
+
+% =====================================================================================
+% FIGURE 1 -- the page-1 results figure the guidelines explicitly recommend (Sec. 3,
+% "Results and discussion": a figure on the first or second page demonstrating the main
+% result, referenced from the introduction).
+%
+% headline.pdf is a single-page THREE-panel figure produced by scripts/compare_models.py:
+%   left   = routing KL(gold || candidate), log y axis
+%   middle = top-1 expert flip rate
+%   right  = WikiText-2 perplexity, log y axis
+% The third panel was added once the ATTENTION control landed. It is not decoration: on
+% the two routing panels ATTENTION tracks UNIFORM, and on perplexity it matches or beats
+% MIXED. A two-panel figure would show one half of that split and would let a reader
+% carry the routing ordering over to end-task quality, where it does not hold.
+% All four policies appear for both models, with bootstrap error bars on the routing
+% panels. The placebo is drawn as a wide translucent underlay precisely because it lands
+% on top of uniform -- that coincidence IS the control result, and a normal line would
+% hide it.
+% =====================================================================================
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{headline.pdf}
+  \caption{Routing drift (left, log scale), top-1 expert flip rate (centre) and
+  WikiText-2 perplexity (right, log scale) against expert precision, for both
+  architectures. \mixed{} keeps every router in BF16 while quantizing all experts;
+  \uniform{} quantizes the routers too; \placebo{} protects a parameter-count-matched
+  random non-router module instead of the routers; \attn{} protects all attention
+  projections instead of the routers and is run at INT4 and INT3 only. Error bars are
+  95\% bootstrap confidence intervals over sequences on the two routing panels;
+  perplexity is a point estimate over all scored tokens and carries none. The
+  \placebo{} curve is drawn as a wide translucent underlay because it coincides with
+  \uniform{}: that coincidence is the control result, and it is what makes the \mixed{}
+  gap router-specific rather than a generic benefit of leaving some weights in high
+  precision. The three panels do not agree, and that disagreement is the paper's
+  sharpest result: \attn{} sits with \uniform{} on routing and with or below \mixed{} on
+  perplexity (Section~\ref{sec:divergence}).
+  \todo{Check that the fonts in headline.pdf are legible at this width once compiled;
+  the guidelines call this out explicitly. If not, widen the figure or regenerate with a
+  larger base font size (see README.md).}}
+  \label{fig:headline}
+\end{figure*}
+
+% =====================================================================================
+% 1. INTRODUCTION
+% -------------------------------------------------------------------------------------
+% CLAIM: A router is ~0.02-0.03% of an MoE model's parameters, so keeping it in BF16 is
+%   nearly free. The literature already does this (EAQuant runs the router at W8A8) but
+%   nobody has measured what it buys in isolation, and there is an active disagreement
+%   about whether it is enough. We measure it as a single controlled variable, validate
+%   it against a parameter-matched placebo, and attribute the residual.
+%
+% STRUCTURE (per the guidelines: problem -> high-level idea -> main findings):
+%   P1  MoE routing is a discrete decision; quantization perturbs it. Motivate.
+%   P2  The cheap structural fix and why it is plausible (parameter share, Table 3).
+%   P3  The live disagreement. RouteQuant says full-precision routers are insufficient
+%       because expert-output error shifts the NEXT layer's router logits. EAQuant
+%       treats router protection as a sensible default. Both cannot be the whole story.
+%   P4  What we do: one variable, two architectures, three bit-widths, no calibration,
+%       bootstrap CIs, a parameter-matched placebo, and an offline four-cell attribution.
+%   P5  Findings, referencing Figure 1. Be explicit that this is a measurement paper,
+%       not a method paper -- we are not beating a baseline, we are sizing two terms.
+%   P6  Contributions list (3-4 bullets).
+%
+% HONESTY REQUIREMENT (do not soften this): router protection is ALREADY EAQuant's
+%   baseline. Our contribution is the controlled isolation, the quantification with
+%   CIs, the placebo validation, and the mechanism attribution -- with no calibration
+%   anywhere. Say so in P3 or P4, not in a footnote.
+% =====================================================================================
+\section{Introduction}
+\label{sec:intro}
+
+\todo{P1 --- the problem. A Mixture-of-Experts layer replaces a dense feed-forward block
+with many experts and a small router that selects top-$k$ of them per token
+\citep{shazeer2017outrageously,fedus2022switch}. Routing is a discrete
+$\arg\text{top-}k$, so unlike a dense matrix multiply it can change its output
+\emph{categorically} under a small perturbation. Post-training quantization perturbs
+every weight. Motivate why that asymmetry matters.}
+
+\todo{P2 --- the cheap structural fix. Routers are a vanishing fraction of the
+parameters (Table~\ref{tab:params}), so excluding them from quantization costs almost
+nothing in memory. State the hypothesis in one sentence.}
+
+\todo{P3 --- the live disagreement, and our honest positioning. \citet{fu2025eaquant}
+already run experts at W4A4 with the router at W8A8, so router protection is their
+\emph{baseline}, not our invention --- say this plainly. Meanwhile
+\citet{routequant2026} argue that a full-precision router is insufficient, because
+quantization error in expert \emph{outputs} still shifts the next layer's router logits,
+and therefore quantize the router and correct it with rank-aware losses. Nobody has
+measured the size of either term under a controlled single-variable design with no
+calibration. That measurement is what this paper contributes.}
+
+\todo{P4 --- what we do. Three policies differing in exactly one respect, two
+architectures, three bit-widths, no calibration data anywhere, bootstrap confidence
+intervals over sequences, a parameter-matched placebo control, and an offline four-cell
+decomposition of the residual drift.}
+
+\todo{P5 --- findings, referring to Figure~\ref{fig:headline}. Router protection
+produces large and replicable reductions in routing drift with disjoint confidence
+intervals in all six model $\times$ bit-width cells; the placebo reproduces the
+unprotected baseline, so the effect is router-specific; but a substantial residual
+remains, and the attribution shows its dominant source \emph{changes} with precision.
+Frame the answer as ``necessary but not sufficient''.}
+
+\noindent
+\todo{P6 --- contributions. Suggested four bullets: (i) the first placebo-controlled
+measurement of router precision as an isolated variable in MoE PTQ, with bootstrap CIs,
+on two architectures and three bit-widths; (ii) an adjudication of the
+\citet{fu2025eaquant} / \citet{routequant2026} disagreement, answered quantitatively
+rather than rhetorically; (iii) an offline four-cell attribution separating the router's
+own rounded weights from upstream activation drift, requiring no additional GPU runs;
+(iv) an open, gated implementation in which every run asserts what it actually
+quantized.}
+
+% =====================================================================================
+% 2. BACKGROUND
+% -------------------------------------------------------------------------------------
+% CLAIM: the paper is self-contained. The guidelines are explicit -- "ensure that any
+%   uncommon models and metrics are clearly defined". A reader who has not read a
+%   quantization paper must be able to follow Section 5 onwards.
+% MUST DEFINE, with equations where it helps: MoE layer and top-k routing; router
+%   logits; effective routing weights; weight-only per-axis integer quantization and
+%   what INT8/INT4/INT3 mean here; routing KL; top-1 flip rate; top-k Jaccard distance;
+%   expert-usage entropy; output-distribution drift; the sequence-level bootstrap.
+% DO NOT define a metric anywhere else in the paper. Every later section refers back.
+% =====================================================================================
+\section{Background}
+\label{sec:background}
+
+\subsection{Mixture-of-Experts routing}
+\label{sec:bg-moe}
+
+\todo{Define an MoE layer. For hidden state $x \in \mathbb{R}^{d}$, a router
+$W_r \in \mathbb{R}^{E \times d}$ produces logits $z = W_r x$; the layer selects the
+top-$k$ experts by $z$ and combines their outputs weighted by the renormalised softmax
+over the selected entries only. Give the equation. Stress that the selection is discrete
+and that $W_r$ is tiny relative to the $E$ expert matrices. Cite
+\citet{shazeer2017outrageously,fedus2022switch,jiang2024mixtral}.}
+
+\todo{Define the \emph{effective routing weights}: the post-top-$k$, renormalised,
+zero-elsewhere vector that actually multiplies expert outputs. Explain why this differs
+from the full softmax, which is dominated by the long tail of experts that are never
+selected and can therefore move a great deal while the computation path is unchanged.
+We report both for that reason.}
+
+\subsection{Post-training quantization}
+\label{sec:bg-ptq}
+
+\todo{Define weight-only per-axis symmetric integer quantization: for each output
+channel, $w \approx s \cdot q$ with $q$ an $N$-bit integer and $s$ a per-channel scale.
+State that this is the only quantizer used here, applied identically at 8, 4 and 3 bits
+via a single configuration class \citep{or2025torchao}, so that a trend across
+bit-widths reflects precision alone and not a change of kernel or algorithm.
+Contrast with calibration-based PTQ --- GPTQ \citep{frantar2023gptq}, AWQ
+\citep{lin2024awq}, SmoothQuant \citep{xiao2023smoothquant}, LLM.int8()
+\citep{dettmers2022llmint8} --- and say that our question is deliberately about a
+\emph{calibration-free structural} safeguard, which is why none of those appear as
+baselines.}
+
+\subsection{Metrics}
+\label{sec:bg-metrics}
+
+% Every metric used in the paper is defined here and nowhere else. Keep the definitions
+% terse but complete; a reader must be able to reconstruct them from this subsection.
+\todo{Define each metric in one or two sentences, in this order, and give the formula
+for the first three.
+\textbf{Routing KL}: $\mathrm{KL}(p_{\text{gold}} \Vert p_{\text{cand}})$ over the full
+expert softmax, averaged over tokens and layers.
+\textbf{Top-1 flip rate}: the fraction of (token, layer) routing decisions whose
+$\arg\max$ expert differs from gold. This is the headline metric because it counts
+decisions that actually changed.
+\textbf{Top-$k$ Jaccard distance}: $1 - |S_{\text{gold}} \cap S_{\text{cand}}| /
+|S_{\text{gold}} \cup S_{\text{cand}}|$ over the selected expert sets; since both sets
+have size $k$, the union is $2k$ minus the intersection.
+\textbf{Expert-usage entropy}: entropy of the marginal expert load, normalised by
+$\log E$; the collapse detector. Note that we also report per-token routing entropy,
+because the marginal alone conflates load imbalance with router confidence.
+\textbf{Jensen--Shannon divergence}: reported alongside KL because KL is unbounded and
+explodes when the candidate places near-zero mass where gold had some.
+\textbf{Output-distribution drift}: a truncated KL over the gold model's top-$M$ token
+ids ($M = 64$) at every 16th scoring position, plus top-1 agreement --- included because
+perplexity is blunt and a model can shift its output distribution noticeably while
+perplexity barely moves.
+\textbf{Perplexity}: WikiText-2, non-overlapping 1024-token windows.}
+
+\todo{Define the bootstrap. All intervals are 95\% percentile bootstrap intervals with
+200 resamples, and \emph{whole sequences are resampled, not individual tokens}. Explain
+why in one sentence: tokens within a sequence are correlated, so token-level resampling
+would produce dishonestly tight intervals. This matters because the entire Part~1 claim
+rests on intervals being disjoint.}
+
+% =====================================================================================
+% 3. RELATED WORK
+% -------------------------------------------------------------------------------------
+% Worth 20 of 100 points. The rubric asks specifically for a review that "critically
+% evaluate[s] previous research and identif[ies] gaps in the literature that the project
+% addressed", with correct attribution. So: group the work, and after each group state
+% in one sentence what it does NOT answer.
+%
+% CLAIM: there is a real gap. Everyone either (a) protects the router as an unexamined
+%   default, (b) proposes a calibration-based fix, or (c) sweeps bit-widths without
+%   isolating the router as a variable. Nobody measures the isolated, calibration-free
+%   effect against a placebo, and nobody separates the two mechanisms.
+%
+% CITATION HYGIENE -- READ custom.bib's HEADER FIRST. routequant2026 (anonymous) and
+%   fang2026router (Fang & Huang, withdrawn) are TWO DIFFERENT PAPERS with different
+%   theses. An earlier version of our own notes conflated them. Do not merge them back.
+% =====================================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Router precision in MoE quantization.}
+\todo{\citet{fu2025eaquant} run experts at W4A4 with the router at W8A8 and benchmark
+OLMoE-1B-7B among others, so their numbers are directly comparable to our primary model.
+Router protection is their \emph{baseline}, adopted without ablation. State the gap: its
+isolated contribution is never measured. \citet{deng2026gemq} independently report that
+routers are under 0.04\% of MoE parameters --- consistent with our own census
+(Table~\ref{tab:params}) --- and fine-tune them; \citet{sramoe} note that routers are
+typically left in full precision because they are small, yet errors from preceding
+layers still alter routing. \note{sramoe is the one entry in custom.bib we could not
+verify --- see its TODO there. Either confirm the OpenReview forum or drop this
+citation.}}
+
+\paragraph{Calibration-based routing repair.}
+\todo{\citet{park2026vsraq} align routing behaviour with a calibration objective
+combining value alignment and structure alignment at 4 bits;
+\citet{hyeon2026retrainingfree} argue explicitly that retraining-free MoE compression is
+insufficient and that the router requires calibration. State the gap: these establish
+that calibration \emph{helps}, but leave open how much of the problem a free structural
+choice already solves. Our design is the calibration-free lower bound against which such
+methods should be credited.}
+
+\paragraph{The disagreement we adjudicate.}
+\todo{\citet{routequant2026} argue that freezing the router is \emph{insufficient},
+because quantization error in expert outputs still shifts the next layer's router
+logits; they therefore quantize the router and correct it with a Rank-Aware Jaccard Loss
+and a Gap Hinge Loss. This is a mechanistic claim about \emph{where} the residual drift
+comes from, and it is exactly what our four-cell attribution measures directly.
+Separately, \citet{fang2026router} find that most routing errors are near-neighbour rank
+flips at the top-$k$ boundary --- the strongest a priori reason to expect router
+protection to underperform, and the failure mode that motivates the margin-aware
+top-$k$ widening we substitute for the proposal's contingency plan
+(Section~\ref{sec:deviations}).}
+
+\paragraph{Bit-width sweeps over MoE sub-structures.}
+\todo{\citet{li2024quantmoebench} sweep bit-widths across MoE sub-structures and are our
+closest neighbour; \citet{kim2023moqe} find expert FFNs tolerate roughly 2-bit
+quantization while attention does not. Differentiate explicitly: neither isolates router
+precision as a single controlled variable, neither runs a parameter-matched placebo, and
+neither separates router-weight error from upstream activation drift. Say what we take
+from them (the sweep design, the expectation that experts are the robust part) and what
+we add.}
+
+% =====================================================================================
+% 4. METHOD
+% -------------------------------------------------------------------------------------
+% CLAIM: the design licenses a causal reading. Three policies differ in exactly one
+%   respect; a placebo controls for the parameter budget; a four-cell decomposition
+%   splits the residual into its only two possible sources.
+% EVIDENCE: Table 3 (the 2x2 design), Table 5 (module counts proving one-variable
+%   difference), and the reconstruction gate in Section 7.
+% This section is worth writing carefully -- Methodology is 20 points and this is where
+% the rigor lives.
+% =====================================================================================
+\section{Method}
+\label{sec:method}
+
+\subsection{Three policies, one variable}
+\label{sec:policies}
+
+\todo{Define \gold{} (nothing quantized; the BF16 upper bound and the reference every
+metric is computed against), \uniform{} (INT$N$ everywhere, routers included; the
+negative baseline), and \mixed{} (INT$N$ everywhere except the routers; the proposed
+safeguard). State the invariant that makes the comparison causal: \uniform{} and
+\mixed{} differ \emph{only} in whether router modules are in the skip set --- the
+symmetric difference of their skip sets contains nothing but router modules, and this is
+asserted in the test suite rather than assumed. Both policies additionally leave the
+token embedding and the output head in high precision, which is standard PTQ practice
+and identical across policies, so it cannot confound the comparison.}
+
+\subsection{The placebo control}
+\label{sec:placebo}
+
+\todo{This is the load-bearing control and deserves its own paragraph. Routers are
+0.03\% of OLMoE and 0.02\% of Qwen (Table~\ref{tab:params}). If protecting \emph{any}
+0.02\% of the weights bought the same improvement, the finding would be about
+high-precision weights in general, not about routers. \placebo{} therefore quantizes all
+routers, exactly as \uniform{} does, and instead protects a randomly chosen non-router
+module whose parameter count matches the total router budget to within 25\%; the choice
+is seeded for reproducibility. Report what it selected: on both models the budget is met
+by a \emph{single} expert projection matrix, so \placebo{} protects one module where
+\mixed{} protects 16 (OLMoE) or 24 (Qwen).
+\note{This asymmetry is real and you must state it rather than let a reader discover it.
+It is parameter-matched but not depth-matched. Carry the caveat into
+Section~\ref{sec:limitations}; do not bury it.}}
+
+On both models the selection is a single expert down-projection in a single mid-depth
+layer: \texttt{model.layers.14.mlp.experts.10.\allowbreak down\_proj} on OLMoE
+($1.000\times$ the router budget) and
+\texttt{model.layers.19.mlp.experts.45.\allowbreak down\_proj} on Qwen
+($0.978\times$), both re-derived offline from the recorded
+\texttt{placebo\_seed}~$=0$ (Appendix~\ref{sec:appendix-verification}). Measured from
+the \gold{} router logits, those modules are on the compute path for 11.4\% (OLMoE) and
+5.0\% (Qwen) of routing tokens in one layer, against routers that every token reads in
+every layer --- a token~$\times$~layer exposure gap of $140\times$ and $477\times$.
+
+\subsection{The exposure-matched control}
+\label{sec:attention-control}
+
+% This subsection exists because the placebo, by construction, cannot address the
+% competing explanation "any high-precision island on the every-token, every-layer main
+% path helps". ATTENTION is the only available policy whose protected weights have the
+% routers' exposure profile. Numbers below are from the correctness gates in
+% results/*/summary.md and the module census in notes/method_audit.md.
+\attn{} quantizes every router, exactly as \uniform{} does, and instead protects all
+attention projections: 64 modules and 268{,}435{,}456 parameters (3.88\%) on OLMoE, 96
+modules and 402{,}800{,}640 parameters (2.81\%) on Qwen, or roughly $128\times$ the
+router parameter budget. Attention is read by every token in every layer, which is the
+exposure profile the routers have and the \placebo{} does not. All 16 (resp.\ 24)
+routers remain quantized under \attn{}, verified per router by name
+(Appendix~\ref{sec:appendix-gates}), so it is a genuine contrast with \mixed{} rather
+than a second \mixed{} run.
+
+\todo{One paragraph on why this is the control \placebo{} cannot be. The two controls
+answer different questions: \placebo{} rules out ``any equally-sized set of weights in
+BF16 helps'', \attn{} rules out ``any high-precision island on the every-token,
+every-layer main path helps''. Matched \emph{exposure} rather than matched \emph{parameter
+count} is the point, and being deliberately far larger than the router budget makes it the
+harder test on routing. Note that at \texttt{nn.Linear} granularity no policy can be
+matched on both count and exposure in either architecture --- the smallest non-router
+linear layer in OLMoE is already $16\times$ the per-layer router budget.}
+
+\subsection{Four-cell attribution of the residual}
+\label{sec:fourcell}
+
+% Table 3: the 2x2 design. Built as a tabular rather than an external figure so there is
+% no image dependency and no font-size problem.
+% The cell labels were shortened because the long parenthetical forms made this single
+% column table 75.1pt overfull, and because "D = uniform" was wrong: cell D pairs
+% quantized router weights with the MIXED run's activations, so it omits the feedback of
+% changed routing on later layers' hidden states. The caption now says so, and
+% Table~\ref{tab:appendix-crosscheck} measures the gap.
+\begin{table}[tbp]
+  \centering
+  \small
+  \begin{tabular}{lcc}
+    \toprule
+     & \multicolumn{2}{c}{\textbf{Router weights}} \\
+    \cmidrule(l){2-3}
+    \textbf{Activations} & gold & quantized \\
+    \midrule
+    gold      & A: reference        & B: weights \\
+    quantized & C: $=$~\mixed{}     & D: both \\
+    \bottomrule
+  \end{tabular}
+  \caption{The four-cell design. Routing drift has exactly two possible sources:
+  rounding in the router's own weights, and drift in the hidden states arriving at the
+  router. Part~1 measures only their combination. Because router input activations are
+  captured during the Part~1 runs, all four cells are single offline matrix
+  multiplications, $\text{logits} = XW^{\top}$, and require no additional GPU jobs. All
+  metrics are computed against cell~A. Cell~C \emph{is} the \mixed{} condition, but
+  cell~D is \textbf{not} the \uniform{} run: it pairs quantized router weights with the
+  \mixed{} run's activations, so it omits the feedback of changed routing decisions on
+  later layers' hidden states. Table~\ref{tab:appendix-crosscheck} measures that gap.}
+  \label{tab:fourcell}
+\end{table}
+
+\todo{Explain Table~\ref{tab:fourcell}. Routing drift has exactly two possible sources.
+Cell A rebuilds gold from stored activations and weights; B applies quantized router
+weights to gold activations; C applies gold router weights to quantized activations,
+which is what \mixed{} does; D is both mechanisms at once. Every cell is scored against
+A, which makes B and C directly comparable. Be careful with D: it is \uniform{}
+\emph{without routing feedback}, not \uniform{} itself, and the paper must not label it
+``$=$~\uniform{}''. The gap between D and \uniform{} grows with damage --- 50.01\% vs
+52.52\% at OLMoE INT3 --- and is worth one sentence as a measurement of the feedback
+term rather than being hidden.}
+
+\todo{Three implementation points that matter for correctness. (i) Activations for the
+quantized side come from the \mixed{} run, not \uniform{}: both quantize the same expert
+and attention weights, but only \mixed{} leaves the routers alone, so its hidden states
+isolate upstream drift from any feedback through changed routing decisions. (ii) The
+quantized router weights are read back from the \uniform{} run rather than re-derived
+offline, so the decomposition measures the rounding the experiment actually performed.
+(iii) The decomposition is gated on cell A reproducing the routing decisions the gold run
+recorded; the reconstruction runs in fp32 on CPU from fp16-stored activations while the
+model ran in BF16 on GPU, so the gate is on \emph{decisions}, not bitwise values
+(Section~\ref{sec:attribution}).}
+
+\todo{State the non-additivity up front, before any numbers. Routing is an
+$\arg\text{top-}k$ over a softmax, so the two mechanisms' effects can cancel as easily
+as compound: a token that either source alone would have flipped is counted once in D
+but twice across B and C. We therefore report the interaction residual explicitly rather
+than folding it into either share, and we take as the interpretable quantity the
+\emph{weight share of single-mechanism flips}, $B/(B+C)$ --- of the flips caused by
+exactly one mechanism, the fraction attributable to the router's own weights. Above
+50\% means router protection is addressing the dominant source at that precision.}
+
+% =====================================================================================
+% 5. EXPERIMENTAL SETUP
+% -------------------------------------------------------------------------------------
+% CLAIM: this is reproducible, and the pipeline is defended against failures that would
+%   have produced plausible-looking but meaningless numbers.
+% The rubric asks for exact settings and reproducibility. Everything in this section is
+% transcribed from configs/{olmoe,qwen}.yaml and the "environment" block of the
+% metrics.json files, so it is exact rather than approximate.
+% =====================================================================================
+\section{Experimental Setup}
+\label{sec:setup}
+
+\subsection{Models}
+
+\begin{table}[tbp]
+  \centering
+  \small
+  \begin{tabular}{lrr}
+    \toprule
+    & \textbf{OLMoE-1B-7B} & \textbf{Qwen1.5-MoE} \\
+    \midrule
+    Total parameters   & 6{,}919{,}161{,}856 & 14{,}315{,}784{,}192 \\
+    MoE layers         & 16                  & 24 \\
+    Experts per layer  & 64                  & 60 \\
+    Top-$k$            & 8                   & 4 \\
+    Hidden size        & 2{,}048             & 2{,}048 \\
+    Shared expert      & no                  & yes \\
+    \midrule
+    Router parameters  & 2{,}097{,}152       & 2{,}949{,}120 \\
+    Router share       & 0.0303\%            & 0.0206\% \\
+    \bottomrule
+  \end{tabular}
+  \caption{The two architectures, from \texttt{scripts/inspect\_model.py}. The router
+  share is the quantity the whole hypothesis rests on: excluding the routers from
+  quantization leaves three hundredths of one percent of the model in high precision.
+  Checkpoints are \texttt{allenai/OLMoE-1B-7B-0924} \citep{muennighoff2024olmoe} and
+  \texttt{Qwen/Qwen1.5-MoE-A2.7B} \citep{qwen2024moe,qwen2023technical}.}
+  \label{tab:params}
+\end{table}
+
+\todo{One paragraph on the two models, referring to Table~\ref{tab:params}. Note that
+Qwen's \texttt{shared\_expert\_gate} is deliberately \emph{not} protected by \mixed{}:
+it emits a single scalar weighting the shared expert's contribution rather than choosing
+among experts, so protecting it would make \mixed{} mean something broader on Qwen than
+on OLMoE, which has no shared expert. Leaving it quantized makes Qwen the conservative
+test, since whatever distortion it picks up counts against \mixed{}.}
+
+\subsection{Data and evaluation protocol}
+
+\todo{WikiText-2 \citep{merity2017pointer} test split, used for both perplexity and
+routing. Perplexity: non-overlapping 1024-token windows (window 1024, stride 1024) over
+the full split, so every token is scored exactly once --- 288{,}448 scored tokens for
+OLMoE and 298{,}785 for Qwen, out of 288{,}730 and 299{,}078 tokenized tokens
+respectively. Routing metrics: 128 sequences of 256 tokens, seed 42, giving 32{,}768
+routing decisions per layer, i.e.\ 524{,}288 (token, layer) decisions on OLMoE and
+786{,}432 on Qwen. Single-sequence batches, so there is no padding and no masked
+positions to track. Router input activations are captured at every 8th token and stored
+as fp16 on CPU, giving 4{,}096 positions per layer for the attribution.
+State plainly that there is no training and no calibration set, so there is no
+train/test leakage surface: WikiText-2 is used purely as an evaluation corpus and no
+model weight is fit to it.}
+
+\todo{Note the alignment guarantee, which is what licenses comparing gold and candidate
+logits row by row: batching is a pure function of (corpus, tokenizer, seed), and the gold
+run stores a SHA-256 fingerprint of the exact token ids. A candidate whose corpus, seed,
+tokenizer or sequence layout differs is rejected rather than silently compared against
+unrelated tokens.}
+
+\subsection{Quantization}
+
+\todo{Weight-only per-axis (per-output-channel) symmetric integer quantization at 8, 4
+and 3 bits via torchao's \texttt{IntxWeightOnlyConfig} \citep{or2025torchao}, wired into
+transformers \citep{wolf2020transformers} through \texttt{TorchAoConfig}. One
+configuration class for every bit-width, deliberately, so a trend across bit-widths
+reflects precision alone. We implement no quantization arithmetic; the contribution is
+the \emph{policy} --- which modules stay in high precision --- and the verification that
+the policy was applied.}
+
+\subsection{Correctness gates}
+\label{sec:gates}
+
+% This subsection is what earns methodology points. Every failure mode here is SILENT:
+% it produces a complete, plausible results table that means nothing.
+% Table~\ref{tab:appendix-gates} carries the module counts that prove the one-variable
+% difference; refer to it from this subsection so the reader can check the claim.
+\todo{Frame this correctly: every failure mode below is silent. A quantizer that skips a
+module it does not recognise still returns a working model with a plausible perplexity.
+The pipeline therefore asserts what it actually did rather than what it was asked to do,
+and \texttt{src/moequant/verify.py} runs after every load and refuses to proceed on
+failure. Enumerate the three traps:
+(i) \textbf{Routers that are not \texttt{nn.Linear}.} DeepSeek-style gates
+\citep{dai2024deepseekmoe} hold a bare \texttt{nn.Parameter} and call
+\texttt{F.linear}, so a quantizer that only swaps \texttt{nn.Linear} never touches the
+router and \uniform{} silently becomes identical to \mixed{} --- a vacuous comparison
+that still produces a full results table. Their forward also returns expert indices
+rather than logits, so a naive hook would compute KL over indices.
+(ii) \textbf{Fused expert stacks.} transformers 5.x fuses MoE experts into 3D parameter
+stacks that \texttt{nn.Linear}-based walkers skip, leaving the ``quantized'' experts at
+full precision while the load reports success; we pin transformers to 4.x and report the
+layout found at runtime.
+(iii) \textbf{Compute capability.} LLM.int8() requires capability 7.5+
+\citep{dettmers2022llmint8} and BF16 is not native below Ampere, so the lab
+workstation's cards are unusable and every run is gated on the allocated hardware.}
+
+\todo{Then list the assertions themselves and note that all of them passed on every run
+(Appendix~\ref{sec:appendix-gates}): \gold{} quantizes nothing; every quantized policy
+quantizes something (catching a default rule that matched no module); \mixed{} has
+\emph{no} router quantized; \uniform{}, \placebo{} and \attn{} have \emph{all} routers
+quantized; no module a policy protects was quantized anyway; each quantized weight shows
+at most $2^{N}$ distinct values per output channel, checked independently of the library's
+own bookkeeping and sampled so that a router and an expert are always inspected; and the
+config's expert count equals the router weight's output dimension. The \gold{} run
+additionally compares its own captured logits against themselves and must yield exactly
+zero KL and zero flips --- if it does not, something upstream is nondeterministic and no
+other number can be trusted.}
+
+The single-variable claim is also checked \emph{after the fact}, from the dequantized
+router weights each run stored, independently of the quantizer's own bookkeeping. Across
+all 12 runs per model, every \mixed{} run's router weights are bit-identical to \gold{} in
+every layer, and every \uniform{}, \placebo{} and \attn{} run's routers sit at exactly the
+INT-$N$ level ceiling --- 16 distinct values per output channel at INT4 and 8 at INT3, in
+all 1{,}024 (resp.\ 1{,}440) channels --- with no layer matching \gold{}
+(Table~\ref{tab:appendix-verification}). This is a machine-checked result rather than an
+assertion about intent, and it is what licenses reading \mixed{} against \uniform{} as a
+one-variable contrast.
+
+\subsection{Hardware and reproducibility}
+
+\todo{RTX 2080 Ti (compute capability 7.5), sharded with \texttt{device\_map="auto"}:
+3 cards for OLMoE ($\sim$14\,GB in BF16) and 5 for Qwen ($\sim$28.6\,GB). Software:
+Python 3.12.3, torch 2.9.1+cu128, transformers 4.57.6, torchao 0.17.0, datasets 5.0.1.
+Every results file records the software versions, GPU name and compute capability, and
+the git commit that produced it. Seed 42 throughout; 200 bootstrap resamples; the
+placebo module choice is seeded separately. State that quantization is deterministic, so
+the only randomness in the intervals is the sampling of sequences.}
+
+\subsection{Deviations from the approved proposal}
+\label{sec:deviations}
+
+% The proposal is part of the graded record, so the deviations need to be stated
+% plainly and justified, not glossed. Four items, all defensible.
+\todo{Write this as one honest paragraph or a short list, covering all four:
+(a) \textbf{Model substitution.} The proposal named
+\texttt{Qwen/Qwen2.5-MoE-1.4B-A14B}, which does not exist on HuggingFace and is
+internally contradictory --- 1.4B total parameters with 14B active is impossible. We use
+OLMoE-1B-7B as the primary model (small enough to iterate on, and benchmarked by
+\citet{fu2025eaquant}, so our numbers are comparable) and Qwen1.5-MoE-A2.7B as a second
+architecture with a structurally different router configuration.
+(b) \textbf{A bit-width sweep rather than INT8 alone.} At INT8 any effect risks being
+smaller than measurement noise, which would leave us unable to claim anything in either
+direction; a sweep also yields a trend rather than a single point. In the event this was
+the right call --- the INT8 effect is real but the mechanism balance at INT8 is the
+\emph{opposite} of that at INT4 (Section~\ref{sec:attribution}), which a single-point
+design would have missed entirely.
+(c) \textbf{Staged Part 1 / Part 2 framing}, so that a null Part 1 would still have
+produced a contribution. Part 1 was not null, and Part 2 became the mechanism analysis
+instead of a post-mortem.
+(d) \textbf{Contingency replaced.} The proposal's fallback of dynamically scaling routing
+scores by activation size is replaced by margin-aware top-$k$ widening, which targets the
+near-neighbour rank-flip failure mode \citet{fang2026router} identify. \note{Only claim
+this as future work --- it is not implemented or evaluated here. Do not imply we ran it.}}
+
+% =====================================================================================
+% 6. RESULTS (PART 1)
+% -------------------------------------------------------------------------------------
+% CLAIM (three, in order):
+%   1. Router protection helps, everywhere, by more than the confidence intervals:
+%      all six model x bit-width cells, disjoint CIs. -> Tables 1 and 2.
+%   2. The effect is ROUTER-SPECIFIC, not "some weights in high precision": the
+%      parameter-matched placebo reproduces uniform. -> Table 1, placebo rows.
+%   3. Qwen INT3 is SATURATION, not evidence. Both policies are destroyed (9555 and
+%      1236 PPL against a gold of 7.97), so a "win" there means little. Say so
+%      explicitly -- do not let the largest-looking number carry the argument.
+%
+% ALL NUMBERS BELOW ARE TRANSCRIBED FROM results/{olmoe,qwen}/summary.md AND
+% results/paper/comparison.md AND CROSS-CHECKED AGAINST THE SOURCE metrics.json.
+% If you regenerate results, regenerate these tables too.
+% =====================================================================================
+\section{Results}
+\label{sec:results}
+
+% Single-column rather than table*: 26 rows spanning both columns cost twice the page
+% height of the same 26 rows in one column, and the body is over budget. The Jaccard
+% column moved to Appendix~\ref{sec:appendix-part1} for the same reason.
+\begin{table}[tbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{llrrr}
+    \toprule
+    \textbf{Policy} & \textbf{Bits} & \textbf{PPL} &
+    \textbf{Routing KL} & \textbf{Top-1 flip} \\
+    \midrule
+    \multicolumn{5}{l}{\emph{OLMoE-1B-7B}} \\
+    \gold{}    & BF16 & 8.3586  & 0.000000 & 0.00\%  \\
+    \cmidrule(l){1-5}
+    \uniform{} & INT8 & 9.3941  & 0.008535 & 18.01\% \\
+    \mixed{}   & INT8 & 9.3234  & 0.006356 & 13.76\% \\
+    \placebo{} & INT8 & 9.3941  & 0.008535 & 18.01\% \\
+    \cmidrule(l){1-5}
+    \uniform{} & INT4 & 10.4946 & 0.028579 & 33.01\% \\
+    \mixed{}   & INT4 & 9.6938  & 0.009005 & 16.86\% \\
+    \placebo{} & INT4 & 10.4946 & 0.028579 & 33.01\% \\
+    \attn{}    & INT4 & 9.7346  & 0.023662 & 30.65\% \\
+    \cmidrule(l){1-5}
+    \uniform{} & INT3 & 30.2290 & 0.104926 & 52.52\% \\
+    \mixed{}   & INT3 & 18.6417 & 0.038463 & 32.15\% \\
+    \placebo{} & INT3 & 30.2259 & 0.104929 & 52.52\% \\
+    \attn{}    & INT3 & 14.3592 & 0.077658 & 47.59\% \\
+    \midrule
+    \multicolumn{5}{l}{\emph{Qwen1.5-MoE-A2.7B}} \\
+    \gold{}    & BF16 & 7.9687    & 0.000000 & 0.00\%  \\
+    \cmidrule(l){1-5}
+    \uniform{} & INT8 & 9.3465    & 0.023470 & 15.65\% \\
+    \mixed{}   & INT8 & 9.2846    & 0.017484 & 12.75\% \\
+    \placebo{} & INT8 & 9.3461    & 0.023470 & 15.65\% \\
+    \cmidrule(l){1-5}
+    \uniform{} & INT4 & 12.0080   & 0.086117 & 30.62\% \\
+    \mixed{}   & INT4 & 11.2445   & 0.035489 & 17.90\% \\
+    \placebo{} & INT4 & 12.0076   & 0.086117 & 30.62\% \\
+    \attn{}    & INT4 & 10.5069   & 0.069109 & 27.95\% \\
+    \cmidrule(l){1-5}
+    \uniform{} & INT3 & 9555.4541 & 0.490062 & 72.48\% \\
+    \mixed{}   & INT3 & 1236.4343 & 0.314730 & 55.69\% \\
+    \placebo{} & INT3 & 9563.0391 & 0.490072 & 72.48\% \\
+    \attn{}    & INT3 & 287.7667  & 0.337966 & 59.87\% \\
+    \bottomrule
+  \end{tabular}
+  \caption{Part 1 results. \gold{} is the BF16 upper bound and the reference all routing
+  metrics are computed against. The \placebo{} rows are the parameter-count-matched
+  control and now cover all three bit-widths: at every bit-width the placebo reproduces
+  \uniform{} across every metric, so the \mixed{} advantage is specific to the routers
+  rather than a generic benefit of holding 0.02--0.03\% of the weights in high precision. The
+  \attn{} rows are the exposure-matched control (Section~\ref{sec:attention-control}),
+  run at INT4 and INT3: it sits close to \uniform{} on the routing metrics while
+  matching or beating \mixed{} on perplexity, which is the split
+  Section~\ref{sec:divergence} takes up. Top-$k$ Jaccard distance is reported in
+  Appendix~\ref{sec:appendix-part1} and moves monotonically with the flip rate in every
+  cell; pooled expert-usage entropy is omitted deliberately, because the per-layer
+  analysis in Section~\ref{sec:collapse} supersedes it.}
+  \label{tab:part1}
+\end{table}
+
+% This table was 118.7pt overfull as a table* with four full-width interval columns. It
+% is transposed: one metric block at a time, so only two interval columns are live at
+% once, and the units are scaled (KL x 10^-3, flips in %) so the digits are shorter. The
+% full unscaled intervals and the paired-difference test are in the appendix.
+\begin{table*}[t]
+  \centering
+  \small
+  \begin{tabular}{llccrc}
+    \toprule
+    \textbf{Model} & \textbf{Bits} & \uniform{} & \mixed{} &
+    \textbf{Reduction} & \textbf{Paired} \\
+    \midrule
+    \multicolumn{6}{l}{\emph{Routing KL} $(\times 10^{-3})$} \\
+    \multirow{3}{*}{OLMoE-1B-7B}
+      & INT8 & 8.535 [8.326, 8.758]       & 6.356 [6.160, 6.550]       & 25.5\% & \checkmark \\
+      & INT4 & 28.579 [28.096, 29.102]    & 9.005 [8.730, 9.304]       & 68.5\% & \checkmark \\
+      & INT3 & 104.926 [102.413, 107.471] & 38.463 [36.767, 40.156]    & 63.3\% & \checkmark \\
+    \multirow{3}{*}{Qwen1.5-MoE-A2.7B}
+      & INT8 & 23.470 [22.859, 24.039]    & 17.484 [16.887, 18.043]    & 25.5\% & \checkmark \\
+      & INT4 & 86.117 [84.862, 87.378]    & 35.489 [34.591, 36.461]    & 58.8\% & \checkmark \\
+      & INT3 & 490.062 [484.581, 496.481] & 314.730 [310.617, 319.030] & 35.8\% & \checkmark \\
+    \midrule
+    \multicolumn{6}{l}{\emph{Top-1 flip rate} (\%)} \\
+    \multirow{3}{*}{OLMoE-1B-7B}
+      & INT8 & 18.01 [17.81, 18.18] & 13.76 [13.61, 13.90] & 23.6\% & \checkmark \\
+      & INT4 & 33.01 [32.71, 33.31] & 16.86 [16.71, 16.99] & 48.9\% & \checkmark \\
+      & INT3 & 52.52 [52.21, 52.83] & 32.15 [31.86, 32.39] & 38.8\% & \checkmark \\
+    \multirow{3}{*}{Qwen1.5-MoE-A2.7B}
+      & INT8 & 15.65 [15.47, 15.80] & 12.75 [12.58, 12.90] & 18.5\% & \checkmark \\
+      & INT4 & 30.62 [30.44, 30.82] & 17.90 [17.69, 18.13] & 41.5\% & \checkmark \\
+      & INT3 & 72.48 [72.11, 72.85] & 55.69 [55.41, 55.99] & 23.2\% & \checkmark \\
+    \bottomrule
+  \end{tabular}
+  \caption{Decision gate. \textbf{The intervals quoted throughout the paper are these:}
+  95\% percentile bootstrap intervals over the full sample of 32{,}768 routing tokens per
+  layer, resampling whole sequences, 200 resamples. In all six model $\times$ bit-width
+  cells the \mixed{} and \uniform{} intervals are disjoint on both metrics, so the
+  advantage of router protection is larger than sampling noise everywhere we measured it.
+  Comparing two independently bootstrapped intervals is a conservative stand-in for a
+  paired-difference test rather than the test itself; the \textbf{Paired} column records
+  that a paired-difference bootstrap with 10{,}000 replicates, computed offline on the
+  strided capture, excludes zero in all twelve cells with 0.00\% of replicates on the
+  wrong side of it (Table~\ref{tab:appendix-paired}). We quote the full-sample marginal
+  intervals rather than the paired ones because the paired test can only be replayed at
+  one token in eight, and no claim here depends on the choice.}
+  \label{tab:gate}
+\end{table*}
+
+% =====================================================================================
+% The ATTENTION control. Laid out with the three metrics side by side and only four data
+% rows, because the whole point is that the ordering of the three policies is not the
+% same in the three metric blocks: on routing KL and flips ATTENTION sits next to
+% UNIFORM, on perplexity it sits at or below MIXED. A per-metric table would have hidden
+% that by separating the blocks.
+% =====================================================================================
+\begin{table}[tbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{lrrrr}
+    \toprule
+    \textbf{Run} & \uniform{} & \mixed{} & \attn{} & \textbf{Rec.} \\
+    \midrule
+    \multicolumn{5}{l}{\emph{Routing KL} $(\times 10^{-3})$} \\
+    OLMoE INT4 & 28.579  & \textbf{9.005}   & 23.662  & 25.1\% \\
+    OLMoE INT3 & 104.926 & \textbf{38.463}  & 77.658  & 41.0\% \\
+    Qwen INT4  & 86.117  & \textbf{35.489}  & 69.109  & 33.6\% \\
+    Qwen INT3  & 490.062 & \textbf{314.730} & 337.966 & 86.7\% \\
+    \midrule
+    \multicolumn{5}{l}{\emph{Top-1 flip rate} (\%)} \\
+    OLMoE INT4 & 33.01 & \textbf{16.86} & 30.65 & 14.6\% \\
+    OLMoE INT3 & 52.52 & \textbf{32.15} & 47.59 & 24.2\% \\
+    Qwen INT4  & 30.62 & \textbf{17.90} & 27.95 & 21.0\% \\
+    Qwen INT3  & 72.48 & \textbf{55.69} & 59.87 & 75.1\% \\
+    \midrule
+    \multicolumn{5}{l}{\emph{WikiText-2 perplexity}} \\
+    OLMoE INT4 & 10.49 & \textbf{9.69} & 9.73           & 94.9\% \\
+    OLMoE INT3 & 30.23 & 18.64         & \textbf{14.36} & 137.0\% \\
+    Qwen INT4  & 12.01 & 11.24         & \textbf{10.51} & 196.6\% \\
+    Qwen INT3  & 9555  & 1236          & \textbf{288}   & 111.4\% \\
+    \bottomrule
+  \end{tabular}
+  \caption{The exposure-matched control, and the split it produces. \textbf{Rec.} is the
+  fraction of \mixed{}'s improvement over \uniform{} that \attn{} recovers; above 100\%
+  means \attn{} is better than \mixed{}. Best of the three in each block is bold.
+  \attn{} protects all
+  attention projections --- 3.88\% of OLMoE and 2.81\% of Qwen, about $128\times$ the
+  router parameter budget --- and leaves every router quantized, with the routers' own
+  every-token, every-layer exposure. On the two routing metrics \attn{} sits next to
+  \uniform{}, recovering a quarter to a third of \mixed{}'s benefit at INT4 despite two
+  orders of magnitude more protected weight; on perplexity it ties \mixed{} once and beats
+  it in the other three cells. The same policy is therefore a fraction as effective as
+  router protection at preserving routing decisions and at least as effective at
+  preserving end-task quality; see Section~\ref{sec:divergence}. The two Qwen INT3 rows
+  are inside the saturated regime of Section~\ref{sec:saturation} and are also where the
+  routing contrast is weakest. Recovered fractions are computed in
+  \texttt{results/paper/comparison.md}.}
+  \label{tab:attention}
+\end{table}
+
+% =====================================================================================
+% Expert collapse. In the body, not the appendix: it delivers a commitment from the
+% approved proposal. Only the two sharpest instruments are here; the per-layer detail,
+% the pooled-vs-per-layer comparison and the two-resolution reconciliation are in
+% Appendix~\ref{sec:appendix-collapse}.
+% =====================================================================================
+\begin{table}[tbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{2pt}
+  \begin{tabular}{lrrrr}
+    \toprule
+    \textbf{Run} & \uniform{} & \mixed{} & \placebo{} & \attn{} \\
+    \midrule
+    \multicolumn{5}{l}{\emph{Starved expert slots}} \\
+    OLMoE INT8 & 13 & 13 & 13 & --- \\
+    OLMoE INT4 & 15 & 15 & 15 & 12  \\
+    OLMoE INT3 & 6  & 9  & 6  & 8   \\
+    Qwen INT8  & 0  & 0  & 0  & --- \\
+    Qwen INT4  & 1  & 0  & 1  & 0   \\
+    Qwen INT3  & \textbf{222} & \textbf{55} & 220 & 74 \\
+    \midrule
+    \multicolumn{5}{l}{\emph{KL(load $\Vert$ uniform)}} \\
+    OLMoE INT8 & 0.1289 & 0.1292 & 0.1289 & --- \\
+    OLMoE INT4 & 0.1291 & 0.1302 & 0.1291 & 0.1263 \\
+    OLMoE INT3 & 0.1630 & 0.1405 & 0.1630 & 0.1419 \\
+    Qwen INT8  & 0.0558 & 0.0547 & 0.0558 & --- \\
+    Qwen INT4  & 0.0752 & 0.0644 & 0.0752 & 0.0653 \\
+    Qwen INT3  & \textbf{0.5717} & \textbf{0.2693} & 0.5717 & 0.3461 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Expert collapse, resolved per layer. OLMoE has 1{,}024 (layer, expert) slots
+  and Qwen 1{,}440; the unquantized \gold{} baselines are 17 and 0 starved slots and load
+  KL 0.1307 and 0.0465. A slot is \emph{starved} when an expert
+  receives less than a tenth of its fair share of tokens in its own layer; counts are
+  summed over layers against the total number of (layer, expert) slots, since expert $j$
+  in one layer is a different expert from expert $j$ in another. Starved counts use all
+  32{,}768 routing tokens per layer; the load-distribution KL against the uniform load is
+  rebuilt from the strided capture, where \gold{} is measured on the same positions.
+  Collapse appears in exactly one cell of the sweep, Qwen INT3, and router protection
+  mitigates it: 222 starved slots and five layers containing an expert that receives zero
+  tokens under \uniform{}, against 55 slots and no fully unused expert anywhere under
+  \mixed{}. \placebo{} reproduces \uniform{} here as it does everywhere else. OLMoE never
+  collapses --- its unquantized baseline already starves 17 of 1024 slots and no policy is
+  materially worse --- which is the boundary condition, reported as a result.
+  Appendix~\ref{sec:appendix-collapse} has the per-layer detail and the pooled
+  expert-usage entropy that averages all of this away.}
+  \label{tab:collapse}
+\end{table}
+
+\subsection{Router protection helps, and the effect replicates}
+
+\todo{One short paragraph. The claim is Tables~\ref{tab:part1} and~\ref{tab:gate}:
+disjoint intervals in all six cells, on both metrics, on two architectures with different
+expert counts and different top-$k$. Give the INT4 numbers as the headline (48.9\% and
+41.5\% fewer top-1 flips) because INT4 is where the effect is largest without being
+saturated. Note that perplexity moves in the same direction throughout, so the routing
+result is not an artefact of a metric that nobody cares about.}
+
+\subsection{The effect is router-specific}
+
+\todo{This is the paragraph the whole paper rests on, so give it room. Read the
+\placebo{} rows of Table~\ref{tab:part1} against the \uniform{} rows above them. At INT8
+and INT4 the placebo's routing KL is identical to \uniform{}'s to six decimal places on
+both models --- 0.008535 vs 0.008535 and 0.028579 vs 0.028579 on OLMoE, 0.023470 vs
+0.023470 and 0.086117 vs 0.086117 on Qwen --- with top-1 flip rates equal to two decimal
+places. Protecting a parameter-count-matched random module instead of the routers does
+nothing, at any of the three bit-widths. Therefore the \mixed{} gap is not a generic
+consequence of holding some weights in high precision. \note{Be precise about the INT3
+placebo: there the agreement is close but not identical --- routing KL 0.104929 vs
+0.104926 on OLMoE and 0.490072 vs 0.490062 on Qwen, and perplexity 30.2259 vs 30.2290
+and 9563.04 vs 9555.45. So write ``identical to six decimal places at INT8 and INT4, and
+to four significant figures at INT3'' rather than claiming six decimals everywhere. The
+direction of the tiny INT3 discrepancy is not even consistent between models, which is
+what you would expect from protecting one arbitrary module. Note also that the INT8
+placebo agreement is not quite exact on Qwen either: perplexity 9.3461 vs 9.3465, with
+routing KL and flip rate identical to the reported precision.}}
+
+\todo{Then the limit of this control, stated here and not only in Limitations: it is
+matched on parameter count and nothing else, so it rules out ``any equally-sized set of
+weights in BF16 helps'' and cannot rule out ``any high-precision island on the
+every-token, every-layer main path helps''. That is what \attn{} is for.}
+
+\subsection{Routing and end-task quality come apart}
+\label{sec:divergence}
+
+On the routing metrics \attn{} behaves like \uniform{}: at INT4 it recovers a quarter to a
+third of \mixed{}'s reduction in routing KL and a seventh to a fifth of its reduction in
+top-1 flips (Table~\ref{tab:attention}), despite protecting roughly $128\times$ the router
+parameter budget with the routers' own exposure profile. On perplexity it ties \mixed{}
+once and beats it in the other three cells.
+
+\todo{This is the paper's sharpest result and it needs the most careful writing in the
+paper. Land three things, in this order, from Table~\ref{tab:attention} and the three
+panels of Figure~\ref{fig:headline}. (i) The routing verdict \emph{supports} router
+specificity: protecting a hundred times more weight on the every-token, every-layer main
+path buys a fraction of what protecting the routers buys. (ii) The perplexity verdict
+contradicts any claim that routers are the best place to spend precision for end-task
+quality, and the paper must say so rather than hedge it. (iii) The reading that
+reconciles them: the two controls address different failure modes --- protecting routers
+preserves \emph{routing decisions}, protecting attention preserves \emph{output quality}
+--- which is consistent with \citet{kim2023moqe}, who find attention is the
+quantization-sensitive part while expert FFNs are robust. Routers stay overwhelmingly the
+more \emph{efficient} place to spend precision (0.03\% of parameters against 3.88\%),
+which is a different claim from being the best one. Add that this is mechanistically
+coherent with Section~\ref{sec:attribution} rather than in tension with it: \attn{}
+removes part of the upstream activation drift that \mixed{} retains while leaving cell~B's
+router-weight error untouched, which predicts exactly the observed pattern of a modest
+routing gain and a real perplexity gain.}
+
+Two caveats bound this. The Qwen INT3 row is inside the saturated regime of
+Section~\ref{sec:saturation} --- 9555, 1236 and 288 against a \gold{} of 7.97 --- and
+carries no weight in either direction. And the routing contrast is an INT4 statement: at
+INT3 \attn{} recovers 41.0\% (OLMoE) and 86.7\% (Qwen) of \mixed{}'s routing-KL reduction,
+so the two policies separate least where the models are most damaged.
+
+\subsection{Expert collapse}
+\label{sec:collapse}
+
+% This subsection delivers a commitment from the approved proposal, so it belongs in
+% Results and not in the appendix. The numbers are from results/*/collapse.md, which
+% resolves per layer; the pooled expert-usage entropy reported in earlier drafts averaged
+% the effect away and read as a null.
+Collapse occurs in exactly one cell of the sweep. On Qwen at INT3, \uniform{} starves 222
+of 1440 expert slots and leaves an expert receiving zero tokens in five of 24 layers;
+\mixed{} cuts that to 55 slots with no fully unused expert anywhere, and the load
+distribution's KL against uniform falls $0.5717 \rightarrow 0.2693$, a $2.1\times$
+reduction. \placebo{} reproduces \uniform{} here as elsewhere (220 slots, the same five
+layers). OLMoE never collapses at any bit-width.
+
+\todo{One paragraph on Table~\ref{tab:collapse}, landing three things. (i) The pooled
+expert-usage entropy earlier drafts reported hid this: it is maximal at balance so its
+gradient is zero where the null sits, and it concatenates every layer's tokens into one
+histogram, cancelling imbalances that point in different directions across layers --- the
+same Qwen \uniform{} INT3 run moves only $0.9996 \rightarrow 0.9929$ pooled while its
+worst layer falls to 0.7585 (Table~\ref{tab:appendix-collapse}). (ii) Router protection
+mitigates the collapse, and the placebo control passes on this metric too. (iii) OLMoE
+showing nothing is the honest boundary condition, not a failure: its unquantized baseline
+already starves 17 of 1024 slots, collapse appears only where a model is pushed past its
+breaking point, and OLMoE at INT3 is not there while Qwen is. Report the null as a result.}
+
+Both resolutions are stated because they differ: starved- and unused-expert counts come
+from the full 32{,}768 routing tokens per layer that each run recorded, while the
+load-distribution shape statistics are rebuilt from the strided capture at one token in
+eight, where low counts hit zero for reasons unrelated to quantization
+(Appendix~\ref{sec:appendix-collapse}).
+
+\subsection{Where the sweep stops being informative}
+\label{sec:saturation}
+
+\todo{Say this before the discussion, not after. At INT3 on Qwen both policies have
+collapsed: perplexity 9555 for \uniform{} and 1236 for \mixed{} against a gold of 7.97.
+A 23\% reduction in top-1 flips between two unusable models is not evidence for
+anything, and we do not count it. We report the cell for completeness and exclude it
+from every claim. OLMoE at INT3 (30.2 vs 18.6 against a gold of 8.36) is degraded but
+not destroyed, so we treat it as informative but weak. The load-bearing evidence is
+INT8 and INT4.}
+
+% =====================================================================================
+% 7. ATTRIBUTION ANALYSIS (PART 2)
+% -------------------------------------------------------------------------------------
+% CLAIM: "necessary but not sufficient", made quantitative. The residual that survives
+%   router protection is dominated by upstream activation drift at INT8 and by the
+%   router's own rounded weights at INT4. That is a precision-dependent answer, and it
+%   is what adjudicates the EAQuant / RouteQuant disagreement.
+% EVIDENCE: Table 4 (weight share of single-mechanism flips, with CIs), Figure 2
+%   (per-model mechanism bars), Appendix (raw KL per mechanism, layer-wise).
+%
+% CONSISTENCY REQUIREMENT: we dismissed Qwen INT3 in Section 6 as saturated. The Qwen
+%   INT3 attribution row (45.4%) sits in the SAME saturated regime, so it must be
+%   flagged the same way and must not carry argumentative weight. Otherwise we are
+%   dismissing INT3 in Part 1 while quoting it in Part 2.
+% =====================================================================================
+\section{Attribution Analysis}
+\label{sec:attribution}
+
+\begin{table*}[t]
+  \centering
+  \small
+  \begin{tabular}{llrrrcc}
+    \toprule
+    & & \multicolumn{3}{c}{\textbf{Top-1 flip rate vs.\ cell A (\%)}} & & \\
+    \cmidrule(lr){3-5}
+    \textbf{Model} & \textbf{Bits} & \textbf{B: weights} &
+    \textbf{C: activations} & \textbf{D: both} &
+    \textbf{$B/(B{+}C)$ (\%)} & \textbf{Interaction (\%)} \\
+    \midrule
+    \multirow{3}{*}{OLMoE-1B-7B}
+      & INT8 & 10.38 & 13.54 & 17.54 & 43.4 [42.7, 44.1] & $-36.4$ [$-38.0$, $-34.9$] \\
+      & INT4 & 27.40 & 16.62 & 31.41 & 62.2 [61.7, 62.8] & $-40.2$ [$-41.4$, $-38.9$] \\
+      & INT3 & 43.78 & 31.74 & 50.01 & 58.0 [57.6, 58.4] & $-51.0$ [$-52.1$, $-49.9$] \\
+    \midrule
+    \multirow{3}{*}{Qwen1.5-MoE-A2.7B}
+      & INT8 & 8.81  & 13.04 & 15.70 & 40.3 [39.8, 40.9] & $-39.1$ [$-40.5$, $-37.7$] \\
+      & INT4 & 25.00 & 18.11 & 30.25 & 58.0 [57.5, 58.5] & $-42.5$ [$-43.5$, $-41.6$] \\
+      & INT3 & 45.76 & 55.06 & 68.58 & 45.4 [45.1, 45.6] & $-47.0$ [$-47.8$, $-46.2$] \\
+    \bottomrule
+  \end{tabular}
+  \caption{Part 2 attribution, 10{,}000 bootstrap replicates. Cells B, C and D follow
+  Table~\ref{tab:fourcell} and are scored against the rebuilt reference cell~A; cell~D is
+  both mechanisms at once, which is \uniform{} \emph{without} the feedback of changed
+  routing on later layers' hidden states rather than \uniform{} itself.
+  $B/(B{+}C)$ is the interpretable column: of the routing flips caused by exactly one
+  mechanism, the fraction attributable to the router's own rounded weights, with 95\%
+  bootstrap intervals over sequences. Above 50\% means router protection addresses the
+  dominant source at that precision. The two mechanisms are \emph{not} additive --- a
+  token that either source alone would flip is counted once in D but twice across B and
+  C --- so the interaction residual $1 - B/D - C/D$ is reported explicitly, with its own
+  interval, rather than folded into a share. Because it is large and negative everywhere,
+  the shares of D do \textbf{not} partition the drift and must not be quoted as ``$X$\%
+  router weights, $(100-X)$\% activation drift''; its negative sign means the two
+  mechanisms flip overlapping sets of tokens. Figure~\ref{fig:appendix-attribution}
+  plots the same cells.
+  \note{The Qwen INT3 row sits in the saturated regime dismissed in
+  Section~\ref{sec:saturation}. It is the one cell where the share falls below half, and
+  it must not be used as evidence --- see the text.}}
+  \label{tab:attribution}
+\end{table*}
+
+\subsection{Reconstruction gate}
+
+\todo{Report the gate before the findings, because nothing below is meaningful without
+it. Cell A, rebuilt offline in fp32 on CPU from fp16-stored activations, reproduces the
+routing decisions the GPU BF16 gold run recorded at 99.66\% mean agreement and 99.46\%
+in the worst layer on OLMoE, and 99.37\% / 98.49\% on Qwen, against a required threshold
+of 95\% (Table~\ref{tab:appendix-reconstruction}). Explain why the gate is on decisions
+and not values: the reconstruction is a different numerical path, so bitwise agreement is
+not available, but a decomposition of \emph{routing decisions} only needs the decisions
+to match. Cross-check the rebuilt cells against the Part 1 runs they should reproduce
+(Table~\ref{tab:appendix-crosscheck}): cell C tracks \mixed{} to within a few tenths of a
+percentage point, which is the reconstruction gap from Part 1 measuring every token while
+the cells use the strided capture subset. Cell D sits \emph{below} \uniform{} by a margin
+that grows with damage --- 17.54 vs 18.01 at OLMoE INT8, 50.01 vs 52.52 at OLMoE INT3,
+68.58 vs 72.48 at Qwen INT3 --- because D omits the feedback of changed routing decisions
+on later layers' hidden states. Report that gap as a measurement of the feedback term,
+and do not label D as \uniform{}.}
+
+\subsection{The dominant mechanism changes with precision}
+
+\todo{The core result, from Table~\ref{tab:attribution} and
+Figure~\ref{fig:appendix-attribution}. At INT8 the router's own weights account for a minority of
+single-mechanism flips --- 43.4\% on OLMoE and 40.3\% on Qwen --- so most of the drift
+that router protection cannot touch comes from hidden states that were already damaged
+upstream. At INT4 the ordering reverses: 62.2\% and 58.0\%, so the router's own rounding
+becomes the larger single source, and protecting it is addressing the dominant term. The
+intervals are tight and the reversal is consistent across both architectures. Say what
+this means: the answer to ``is protecting the router enough?'' is precision-dependent,
+which is why the two positions in the literature can both be partly right.}
+
+\note{Be precise about what $B/(B{+}C)$ does and does not say, because it is easy to
+garble. The residual that survives router protection is cell~C \emph{by construction} ---
+\mixed{} is cell C, so its remaining drift is upstream activation drift, at every
+precision. What changes between INT8 and INT4 is not the composition of that residual but
+which of the two mechanisms is \emph{larger}. So the correct sentence is ``at INT4 router
+protection removes the larger of the two terms, at INT8 it removes the smaller one'', not
+``at INT4 the residual is dominated by router weights''. The latter is false: after
+protection there are no router-weight errors left to dominate anything.}
+
+\todo{Then the honesty paragraph, and do not omit it. OLMoE at INT3 gives 58.0\%,
+consistent with INT4. Qwen at INT3 gives 45.4\%, the only cell below half --- but that
+is the same saturated regime we excluded in Section~\ref{sec:saturation}, where both
+policies are destroyed. We therefore do not read it as a return of activation dominance
+at very low precision; it carries no argumentative weight in either direction. Make this
+explicit, because dismissing Qwen INT3 in Part 1 and then quoting it in Part 2 would be
+exactly the kind of selective reading this design was built to avoid.}
+
+\todo{Optionally, one sentence on the raw routing-KL split
+(Table~\ref{tab:appendix-kl}), which shows the same crossover on a
+continuous metric: on OLMoE the weights-only KL is 0.001833 against 0.007284 for
+activations at INT8, and 0.017479 against 0.009920 at INT4. The crossover is therefore
+not an artefact of thresholding a continuous drift into a discrete flip.}
+
+% =====================================================================================
+% 8. DISCUSSION
+% -------------------------------------------------------------------------------------
+% CLAIM: "necessary but not sufficient", and both terms are now measured. This is where
+%   the paper earns its "Results and discussion" points by saying what follows from the
+%   numbers rather than restating them.
+% Do NOT frame this as beating a baseline. We are sizing two terms in a decomposition.
+% =====================================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Necessary but not sufficient.}
+\todo{Answer the research question in one sentence, then unpack it. Protecting the router
+is worth doing --- the gains are large, replicable across architectures, placebo-
+controlled, and free --- and it is not enough, because a substantial residual survives
+and at INT8 that residual is dominated by a mechanism router protection cannot reach.}
+
+\paragraph{Adjudicating the disagreement.}
+\todo{\citet{routequant2026} argue full-precision routers are insufficient because
+expert-output error shifts downstream router logits; \citet{fu2025eaquant} treat
+protection as a sensible default. Our numbers say both are describing real terms whose
+relative size depends on precision: the activation-drift term they emphasise dominates at
+INT8, while the router's own rounding dominates at INT4. Frame our contribution as
+\emph{measuring the size of both terms} under a controlled design, not as beating either.}
+
+\paragraph{Practical reading.}
+\todo{What should a practitioner do? Router protection is free and always helped in our
+measurements, so it should be the default --- but a method that only protects the router
+will hit a floor set by upstream drift, and that floor is highest (relatively) at the
+precisions where quantization is otherwise nearly lossless. Note that the calibration
+methods we cite \citep{park2026vsraq,hyeon2026retrainingfree} should be credited against
+this calibration-free floor rather than against a fully uniform baseline.}
+
+\paragraph{Why the mechanisms are not additive.}
+\todo{One short paragraph on the consistently negative interaction residual
+($-36\%$ to $-51\%$): the two mechanisms flip overlapping sets of tokens, which is what
+you expect if flips concentrate on tokens whose top-$k$ margin was already narrow. Connect
+to \citet{fang2026router}'s near-neighbour rank-flip finding --- our residual is
+consistent with theirs, though we do not measure margins directly. \note{Be careful:
+this is a consistency observation, not a measurement. We did not compute top-$k$ margins.
+Phrase it as a hypothesis the residual is compatible with.}}
+
+% =====================================================================================
+% 9. LIMITATIONS -- unnumbered, per ACL convention, and does not count toward the
+% 8-page limit in most venues (check the course rule; the guidelines say 8 pages
+% excluding references and appendix, so treat Limitations as in-budget to be safe).
+% -------------------------------------------------------------------------------------
+% Be genuinely critical here. The rubric rewards honest negative and partial results,
+% and every item below is a real weakness a careful reader would find.
+% =====================================================================================
+\section*{Limitations}
+\label{sec:limitations}
+
+\todo{Write each of the following as one or two sentences. Do not soften them.
+\textbf{(1) The placebo is matched on parameter count and on nothing else.} On both models
+the router budget is met by a single non-router projection matrix, so \placebo{} protects
+one module in one layer while \mixed{} protects 16 or 24 modules spread across every
+layer. The gap that matters is not depth but \emph{activation exposure}: measured from the
+\gold{} router logits, the protected module is on the compute path for 11.4\% (OLMoE) and
+5.0\% (Qwen) of routing tokens in one layer, against routers read by every token in every
+layer --- a token~$\times$~layer exposure gap of $140\times$ and $477\times$. The placebo
+therefore rules out ``any equally-sized set of weights in BF16 helps'' and cannot rule out
+``any high-precision island on the every-token, every-layer main path helps''. It is also
+$n = 1$: one module drawn once, at \texttt{placebo\_seed}~$=0$. At \texttt{nn.Linear}
+granularity no control can be matched on count and exposure at once in either
+architecture, since the smallest non-router linear layer is already $16\times$ the
+per-layer router budget; closing that would require quantizing row slices of a module,
+which the quantizer cannot express.
+\textbf{(1b) What \attn{} does and does not settle.} It closes the exposure confound for
+\emph{routing} but not for \emph{perplexity}, where it matches or beats \mixed{}
+(Section~\ref{sec:divergence}): we can claim routers are the most efficient place to spend
+precision per protected parameter, not the best place for end-task quality. \attn{} is also
+not parameter-matched, so it separates exposure from role only if protecting \emph{more}
+weight on the main path cannot help \emph{less}, and we have no policy matched on both
+count and exposure to check that.
+\textbf{(2) One corpus, one language, one task.} WikiText-2 perplexity and routing only;
+no downstream task evaluation, so we cannot say whether the routing changes we measure
+translate into task degradation.
+\textbf{(3) Weight-only quantization.} No activation quantization, so our setting is not
+directly comparable to W4A4 results such as \citet{fu2025eaquant}'s.
+\textbf{(4) No calibration-based baseline.} By design --- the question is about a
+calibration-free structural choice --- but it means we cannot say how large the remaining
+headroom is relative to GPTQ-style methods.
+\textbf{(5) No memory or latency measurement.} torchao quantizes for real, but we run on
+GPUs where the dequantized compute path dominates and we measure quality, not throughput.
+Do not imply a speedup.
+\textbf{(6) Saturation at INT3.} Qwen INT3 is unusable under both policies, so one sixth
+of the sweep carries no evidential weight, in Part 1 or Part 2.
+\textbf{(7) The attribution uses a strided subset} (every 8th token, 4{,}096 positions
+per layer) and is reconstructed offline in a different numerical path from the run; the
+reconstruction gate bounds but does not eliminate that gap. The same stride limits the
+paired-difference bootstrap and the load-shape statistics in
+Table~\ref{tab:collapse}, which is why the intervals we quote are the full-sample
+marginal ones (Table~\ref{tab:gate}) and why starved-expert counts are taken from the
+full-resolution fields.
+\textbf{(8) Two architectures is not a survey.} Both have hidden size 2048 and both use
+a clean \texttt{nn.Linear} router; we did not evaluate a DeepSeek-style
+\texttt{nn.Parameter} gate, only defended against it.
+\textbf{(9) Perplexity carries no interval anywhere.} Per-window negative log-likelihood
+is not retained, so the first column of every results table is a point estimate over all
+288{,}448 (OLMoE) / 298{,}785 (Qwen) scored tokens. Every inferential claim rests on the
+routing metrics, which do carry sequence-level intervals --- and this is a real limit on
+Section~\ref{sec:divergence}, where the \attn{}-versus-\mixed{} perplexity comparison is
+therefore a comparison of two point estimates.}
+
+% =====================================================================================
+% 10. CONCLUSION
+% =====================================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+\todo{Three to five sentences. Restate the question, the answer (``necessary but not
+sufficient''), the two numbers that carry it (placebo-controlled reduction at INT4; the
+43\%$\rightarrow$62\% shift in weight share between INT8 and INT4), and one forward
+pointer --- margin-aware top-$k$ widening, targeting the near-neighbour rank-flip failure
+mode, as the natural next experiment. Do not introduce anything new here.}
+
+% =====================================================================================
+% 11. AI DISCLOSURE AND REFLECTION
+% -------------------------------------------------------------------------------------
+% REQUIRED by the course guidelines, Section 4 ("Policy on AI Usage"). The guidelines
+% ask for: how, why, in which parts, and for what purpose AI was used; which tools and
+% models; and a reflection on how it went. They state explicitly that this does not
+% affect the grade -- so be specific and candid rather than defensive.
+%
+% This section must be written by the students from their own record of what they did.
+% It is the one section where an AI-drafted answer would be self-defeating.
+% =====================================================================================
+\section*{AI Disclosure and Reflection}
+\label{sec:ai-disclosure}
+
+\todo{Write this yourselves --- it is the one section where the content has to be your
+own record. Cover, per the guidelines: \emph{how} and \emph{why} you used AI; \emph{which
+parts} of the project (e.g.\ implementation of the harness, the verification and
+correctness-gate design, plotting, literature search, LaTeX scaffolding, prose editing);
+\emph{which tools and models} by name and version; and a genuine reflection on how it
+went, including where it was wrong or unhelpful.}
+
+\todo{Two concrete things worth reporting, because they are honest and specific.
+(i) An AI-assisted literature pass initially \emph{conflated} two distinct papers ---
+the anonymous ``Beyond Freezing the Router'' submission \citep{routequant2026} and Fang
+and Huang's withdrawn ``Router Choice Matters'' \citep{fang2026router} --- and asserted
+they were the same work in our own project notes. It was caught by checking the sources
+directly, and the corrected distinction is now recorded as a comment in
+\texttt{custom.bib} so it cannot be reintroduced. This is a useful, concrete example of
+why every citation was verified against the live source.
+(ii) The correctness gates in \texttt{verify.py} exist because the silent-failure modes
+in Section~\ref{sec:gates} are exactly the kind of bug that AI-assisted code produces
+confidently --- a quantizer that walks \texttt{nn.Linear} modules looks correct and
+silently skips a \texttt{nn.Parameter} router. Reflect on the general lesson: the useful
+discipline was making the pipeline assert what it actually did.}
+
+% =====================================================================================
+% ACKNOWLEDGMENTS -- optional. Delete if unused.
+% =====================================================================================
+% \section*{Acknowledgments}
+% \todo{Optional. The course cluster (studentkillable partition) if you want to
+% acknowledge the compute.}
+
+\bibliography{custom}
+
+% =====================================================================================
+% APPENDIX
+% -------------------------------------------------------------------------------------
+% Per the guidelines: "it should not contain any content that is critical to the flow of
+% the paper. In fact, it should be assumed that the appendix is not read at all."
+% So nothing here may be load-bearing. Everything below is corroboration.
+% =====================================================================================
+\appendix
+
+\section{Correctness gate report}
+\label{sec:appendix-gates}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{llrr}
+    \toprule
+    \textbf{Model} & \textbf{Policy} & \textbf{Quantized} & \textbf{Routers q.} \\
+    \midrule
+    \multirow{5}{*}{OLMoE}
+      & \gold{}    & 0    & 0 / 16  \\
+      & \attn{}    & 3088 & 16 / 16 \\
+      & \mixed{}   & 3136 & 0 / 16  \\
+      & \placebo{} & 3151 & 16 / 16 \\
+      & \uniform{} & 3152 & 16 / 16 \\
+    \midrule
+    \multirow{5}{*}{Qwen}
+      & \gold{}    & 0    & 0 / 24  \\
+      & \attn{}    & 4440 & 24 / 24 \\
+      & \mixed{}   & 4512 & 0 / 24  \\
+      & \placebo{} & 4535 & 24 / 24 \\
+      & \uniform{} & 4536 & 24 / 24 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Modules quantized per policy, identical at every bit-width. The counts are the
+  proof that the policies differ as intended: \mixed{} quantizes exactly 16 (resp.\ 24)
+  fewer modules than \uniform{}, and those modules are exactly the routers. \placebo{}
+  quantizes all routers and spares one module instead, which is why its count is one
+  below \uniform{}'s. \attn{} spares 64 (resp.\ 96) attention projections and keeps every
+  router quantized, which is what distinguishes it from \mixed{}. Every run also passed
+  the per-channel distinct-value check ($\leq 2^{N}$ levels) and the expert-count
+  cross-check, and \gold{} passed its self-comparison at exactly zero KL and zero flips.
+  The module \placebo{} protected is not recorded in the results tree; it is deterministic
+  given \texttt{placebo\_seed}~$=0$ and is re-derived in
+  Table~\ref{tab:appendix-placebo}.}
+  \label{tab:appendix-gates}
+\end{table}
+
+\section{Offline verification of the policies}
+\label{sec:appendix-verification}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{llrrr}
+    \toprule
+    \textbf{Model} & \textbf{Routers} & \textbf{Levels} & \textbf{Max} &
+    \textbf{Identical} \\
+    \midrule
+    \multirow{4}{*}{OLMoE}
+      & BF16 & 1161 & --- & 16 / 16 \\
+      & INT8 & 60   & 256 & 0 / 16 \\
+      & INT4 & 16   & 16  & 0 / 16 \\
+      & INT3 & 8    & 8   & 0 / 16 \\
+    \midrule
+    \multirow{4}{*}{Qwen}
+      & BF16 & 1107 & --- & 24 / 24 \\
+      & INT8 & 46   & 256 & 0 / 24 \\
+      & INT4 & 16   & 16  & 0 / 24 \\
+      & INT3 & 8    & 8   & 0 / 24 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Machine-checked bit-identity and quantization level check, computed with no GPU
+  from the dequantized router weights each run stored --- that is, the weights the run
+  actually used --- rather than from the quantizer's bookkeeping. The BF16 rows are
+  \gold{} and all three \mixed{} runs; the INT-$N$ rows are the \uniform{} and \placebo{}
+  runs at that width, plus \attn{} at INT4 and INT3. \textbf{Levels} is the largest number
+  of distinct values found in any single output channel across all 1{,}024 (resp.\ 1{,}440)
+  channels; per-axis symmetric INT-$N$ quantization cannot exceed the \textbf{Max} column,
+  $2^{N}$. \textbf{Identical} counts layers whose router weights match \gold{} bitwise.
+  All 12 runs per model pass. The INT8 rows show fewer than 256 levels because with a
+  per-channel scale of $\max|w| / 127$ and roughly Gaussian router weights the extreme
+  codes are never reached; that is expected, not a shortfall. Regenerate with
+  \texttt{scripts/verify\_offline.py}; the full report is
+  \texttt{results/<model>/verification.md}.}
+  \label{tab:appendix-verification}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{lrr}
+    \toprule
+    & \textbf{OLMoE} & \textbf{Qwen} \\
+    \midrule
+    Layer / expert       & 14 / 10 & 19 / 45 \\
+    Parameters           & 2{,}097{,}152 & 2{,}883{,}584 \\
+    Ratio to budget      & $1.000\times$ & $0.978\times$ \\
+    Candidate pool       & 3{,}072 & 4{,}344 \\
+    Tokens on its path   & 11.43\% & 5.04\% \\
+    Exposure gap         & $140\times$ & $477\times$ \\
+    \bottomrule
+  \end{tabular}
+  \caption{What \placebo{} protected, re-derived offline from a meta-device skeleton at
+  \texttt{placebo\_seed}~$=0$: \texttt{model.layers.14.mlp.experts.10.down\_proj} on OLMoE
+  and \texttt{model.layers.19.mlp.experts.45.down\_proj} on Qwen. Both are a
+  \emph{single} expert down-projection. The selection rule accumulates modules until
+  within 25\% of the router budget, but on both real checkpoints every eligible candidate
+  is already within tolerance on its own, so the loop terminates after one draw and the
+  tolerance band is never exercised. \textbf{Tokens on its path} is measured from the
+  \gold{} router logits over the 32{,}768 routing tokens; the exposure gap counts
+  token~$\times$~layer forward events against routers read by every token in every layer.}
+  \label{tab:appendix-placebo}
+\end{table}
+
+\section{Paired-difference bootstrap}
+\label{sec:appendix-paired}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{llrl}
+    \toprule
+    \textbf{Bits} & \textbf{Metric} & \textbf{Diff.} & \textbf{95\% paired CI} \\
+    \midrule
+    \multicolumn{4}{l}{\emph{OLMoE}} \\
+    INT8 & KL    & $-2.123$   & [$-2.178$, $-2.071$] \\
+    INT8 & flips & $-41.901$  & [$-44.357$, $-39.413$] \\
+    INT4 & KL    & $-19.654$  & [$-19.996$, $-19.350$] \\
+    INT4 & flips & $-156.982$ & [$-161.728$, $-152.435$] \\
+    INT3 & KL    & $-67.093$  & [$-69.430$, $-65.174$] \\
+    INT3 & flips & $-201.645$ & [$-206.863$, $-196.594$] \\
+    \midrule
+    \multicolumn{4}{l}{\emph{Qwen}} \\
+    INT8 & KL    & $-5.809$   & [$-5.966$, $-5.660$] \\
+    INT8 & flips & $-28.778$  & [$-30.609$, $-26.978$] \\
+    INT4 & KL    & $-50.866$  & [$-51.526$, $-50.205$] \\
+    INT4 & flips & $-129.242$ & [$-132.833$, $-125.661$] \\
+    INT3 & KL    & $-176.996$ & [$-181.264$, $-173.012$] \\
+    INT3 & flips & $-166.219$ & [$-171.214$, $-161.346$] \\
+    \bottomrule
+  \end{tabular}
+  \caption{Paired-difference bootstrap on $\mixed{} - \uniform{}$, all entries
+  $\times 10^{-3}$; negative favours
+  \mixed{}. Both arms use \texttt{seed}~$=42$ over the same 128 sequence groups, so their
+  replicates are the same resamples and the difference can be bootstrapped directly:
+  10{,}000 replicates, sequence-level resampling, rebuilt offline from the strided capture
+  at one token in eight. Zero is excluded in all twelve cells, with 0.00\% of replicates on
+  the wrong side. Pairing narrows the interval by $1.8\times$ to $10.0\times$ relative to
+  the sum of the two marginal interval widths. \textbf{This table is confirmatory, not the
+  quoted interval}: the marginal intervals in Table~\ref{tab:gate} are measured on the full
+  32{,}768 routing tokens per layer, whereas this test can only be replayed on one token in
+  eight, because per-token metric values were not retained. Trading the full sample for the
+  pairing is not worth it for the headline, and no claim in the paper depends on the choice.
+  Source: \texttt{results/<model>/paired\_bootstrap.md}.}
+  \label{tab:appendix-paired}
+\end{table}
+
+\section{Expert collapse: per-layer detail}
+\label{sec:appendix-collapse}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{llrrr}
+    \toprule
+    \textbf{Run} & \textbf{Bits} & \textbf{Unused} &
+    \textbf{Worst $H$} & \textbf{Pooled $H$} \\
+    \midrule
+    \multicolumn{5}{l}{\emph{OLMoE, 16 layers, 1{,}024 slots}} \\
+    \gold{}    & BF16 & 0 & 0.9533 & 0.9975 \\
+    \uniform{} & INT4 & 0 & 0.9483 & 0.9976 \\
+    \mixed{}   & INT4 & 0 & 0.9508 & 0.9976 \\
+    \attn{}    & INT4 & 0 & 0.9498 & 0.9976 \\
+    \uniform{} & INT3 & 0 & 0.9389 & 0.9968 \\
+    \mixed{}   & INT3 & 0 & 0.9425 & 0.9973 \\
+    \attn{}    & INT3 & 0 & 0.9465 & 0.9974 \\
+    \midrule
+    \multicolumn{5}{l}{\emph{Qwen, 24 layers, 1{,}440 slots}} \\
+    \gold{}    & BF16 & 0 & 0.9742 & 0.9996 \\
+    \uniform{} & INT4 & 0 & 0.9703 & 0.9993 \\
+    \mixed{}   & INT4 & 0 & 0.9694 & 0.9995 \\
+    \attn{}    & INT4 & 0 & 0.9694 & 0.9994 \\
+    \uniform{} & INT3 & 7 & \textbf{0.7585} & 0.9929 \\
+    \mixed{}   & INT3 & 0 & 0.8752 & 0.9964 \\
+    \attn{}    & INT3 & 0 & 0.7850 & 0.9944 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Why the pooled expert-usage entropy reads as a null. \textbf{Pooled $H$} is the
+  normalised entropy that earlier drafts reported: it concatenates every layer's tokens
+  into one histogram before measuring, so imbalances pointing in different directions
+  across layers cancel. \textbf{Worst $H$} is the same quantity computed per layer, on the
+  same runs. On Qwen \uniform{} INT3 the pooled number moves
+  $0.9996 \rightarrow 0.9929$ while the worst layer falls to 0.7585 and seven expert slots
+  receive exactly zero tokens across five layers. \textbf{Unused} counts slots with zero
+  selections at full resolution. \attn{} partially mitigates the collapse as well --- 74
+  starved slots against \uniform{}'s 222 and \mixed{}'s 55, with no fully unused expert ---
+  which is a further instance of the divergence in Section~\ref{sec:divergence}. INT8 rows
+  are omitted: every policy is at the \gold{} baseline there. Source:
+  \texttt{results/<model>/collapse.md}.}
+  \label{tab:appendix-collapse}
+\end{table}
+
+\section{Part 1: additional metrics}
+\label{sec:appendix-part1}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{2pt}
+  \begin{tabular}{lrrrr}
+    \toprule
+    \textbf{Run} & \uniform{} & \mixed{} & \placebo{} & \attn{} \\
+    \midrule
+    OLMoE INT8 & 0.1445 & 0.1277 & 0.1445 & --- \\
+    OLMoE INT4 & 0.2362 & 0.1494 & 0.2362 & 0.2063 \\
+    OLMoE INT3 & 0.4341 & 0.2771 & 0.4341 & 0.3627 \\
+    Qwen INT8  & 0.2118 & 0.1853 & 0.2118 & --- \\
+    Qwen INT4  & 0.3558 & 0.2444 & 0.3558 & 0.3211 \\
+    Qwen INT3  & 0.7444 & 0.6166 & 0.7444 & 0.6346 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Top-$k$ Jaccard distance between the \gold{} and candidate selected-expert
+  sets, omitted from Table~\ref{tab:part1} for space. \gold{} is 0.0000 by construction.
+  It moves monotonically with the top-1 flip rate in every cell and shows the same
+  ordering, including the \attn{} rows sitting between \mixed{} and \uniform{}.}
+  \label{tab:appendix-jaccard}
+\end{table}
+
+\todo{Report normalised expert-usage entropy here, and do not describe it as showing an
+absence of expert collapse --- Section~\ref{sec:collapse} and
+Table~\ref{tab:appendix-collapse} show that the pooled version hides a real collapse on
+Qwen INT3. Report it as the metric the earlier analysis relied on and explain why it is
+the wrong aggregation: OLMoE stays in 0.9968--0.9977 across every policy and bit-width
+against a \gold{} of 0.9975, and Qwen in 0.9929--0.9996 against a \gold{} of 0.9996, so a
+run whose worst layer starves 18 of 60 experts scores 0.9929.}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\columnwidth]{comparison.pdf}
+  \caption{Cross-model detail panels. Page 1 of the source PDF is WikiText-2 perplexity;
+  pages 2--4 are top-$k$ Jaccard distance, output-distribution KL over the gold top-$M$
+  support, and normalised expert-usage entropy. All four panels now include \attn{}.
+  \todo{Select the page you want with \texttt{[page=N]}; page 1 is shown by default.
+  Decide which one or two panels are worth the space and drop the rest. Note that page 1
+  duplicates the third panel of Figure~\ref{fig:headline}, so page 2 or 3 is the better
+  choice.}}
+  \label{fig:appendix-comparison}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\columnwidth,page=3]{collapse_qwen.pdf}
+  \caption{Starved experts by layer on Qwen at INT3, the one cell of the sweep where
+  collapse occurs. Page 3 of the source PDF; pages 1--2 are the same panel at INT8 and
+  INT4, pages 4--6 the per-layer usage entropy at the three bit-widths, and page 7 the
+  expert-load concentration summary.
+  \todo{The OLMoE counterpart is
+  \texttt{collapse\_olmoe.pdf} and shows the null, which is worth including if there is
+  room.}}
+  \label{fig:appendix-collapse}
+\end{figure}
+
+\todo{Per-model figure sets are available as \texttt{olmoe\_figures.pdf} and
+\texttt{qwen\_figures.pdf} (9 pages each: perplexity, routing KL, top-1 flip rate,
+Jaccard distance, expert-usage entropy, output KL, then layer-wise routing drift at
+INT8, INT4 and INT3). Include the layer-wise pages if you have room --- they show
+\emph{where in depth} the drift accumulates, which nothing in the main text covers.}
+
+\section{Part 2: mechanism detail}
+\label{sec:appendix-attribution}
+
+% Moved out of the body to buy page budget. The numbers it plots are all in
+% Table~\ref{tab:attribution}, which stays in the body, so nothing load-bearing moved.
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\columnwidth]{olmoe_attribution.pdf}
+  \includegraphics[width=\columnwidth]{qwen_attribution.pdf}
+  \caption{Top-1 flip rate for each mechanism at each precision: OLMoE (top) and Qwen
+  (bottom). Error bars are 95\% bootstrap intervals over sequences, 10{,}000 replicates.
+  The crossover is the finding: at INT8 the activations-only bar exceeds the weights-only
+  bar, and at INT4 the ordering reverses on both models.
+  \todo{These source PDFs have four pages each --- page 1 is this mechanism bar chart
+  and pages 2--4 are the per-layer splits at INT8/INT4/INT3. \texttt{includegraphics}
+  takes page 1 by default, which is what we want here; use
+  \texttt{[page=2]}, \texttt{[page=3]}, \texttt{[page=4]} for the per-layer panels.
+  Verify after the first compile that the intended panel appeared.}}
+  \label{fig:appendix-attribution}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{llrrr}
+    \toprule
+    & & \multicolumn{3}{c}{\textbf{Routing KL vs.\ cell A}} \\
+    \cmidrule(l){3-5}
+    \textbf{Model} & \textbf{Bits} & \textbf{B} & \textbf{C} & \textbf{D} \\
+    \midrule
+    \multirow{3}{*}{OLMoE}
+      & INT8 & 0.001833 & 0.007284 & 0.009110 \\
+      & INT4 & 0.017479 & 0.009920 & 0.027223 \\
+      & INT3 & 0.058610 & 0.039325 & 0.092915 \\
+    \midrule
+    \multirow{3}{*}{Qwen}
+      & INT8 & 0.005292 & 0.020749 & 0.026038 \\
+      & INT4 & 0.044367 & 0.038740 & 0.083575 \\
+      & INT3 & 0.166601 & 0.314523 & 0.453984 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Routing KL by mechanism, showing the same INT8-to-INT4 crossover as the flip
+  rates in Table~\ref{tab:attribution} on a continuous metric: B $<$ C at INT8 and
+  B $>$ C at INT4 on both models.}
+  \label{tab:appendix-kl}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{llrrrr}
+    \toprule
+    \textbf{Model} & \textbf{Bits} & C & \mixed{} & D & \uniform{} \\
+    \midrule
+    \multirow{3}{*}{OLMoE}
+      & INT8 & 13.54 & 13.76 & 17.54 & 18.01 \\
+      & INT4 & 16.62 & 16.86 & 31.41 & 33.01 \\
+      & INT3 & 31.74 & 32.15 & 50.01 & 52.52 \\
+    \midrule
+    \multirow{3}{*}{Qwen}
+      & INT8 & 13.04 & 12.75 & 15.70 & 15.65 \\
+      & INT4 & 18.11 & 17.90 & 30.25 & 30.62 \\
+      & INT3 & 55.06 & 55.69 & 68.58 & 72.48 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Cross-check of the rebuilt cells against the Part 1 runs they should
+  reproduce (top-1 flip rate, \%). Cell C is the \mixed{} condition, and it tracks it to
+  within a few tenths of a point --- the residual being that Part 1 measures every token
+  while the cells use the strided capture subset. Cell D is \uniform{} \emph{without
+  routing feedback}, so the D-versus-\uniform{} gap is not reconstruction error but a
+  measurement of the feedback term: it grows with damage, from 0.47 points at OLMoE INT8
+  to 2.51 at OLMoE INT3 and 3.90 at Qwen INT3.}
+  \label{tab:appendix-crosscheck}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \begin{tabular}{lrrr}
+    \toprule
+    \textbf{Model} & \textbf{Mean} & \textbf{Worst layer} & \textbf{Threshold} \\
+    \midrule
+    OLMoE & 99.66\% & 99.46\% & 95\% \\
+    Qwen  & 99.37\% & 98.49\% & 95\% \\
+    \bottomrule
+  \end{tabular}
+  \caption{Reconstruction gate: top-1 agreement between cell A, rebuilt offline in fp32
+  on CPU from fp16-stored activations, and the routing decisions the BF16 GPU \gold{} run
+  recorded. Identical at every bit-width, since cell A depends only on gold quantities.
+  Both models pass with substantial margin.}
+  \label{tab:appendix-reconstruction}
+\end{table}
+
+\section{Reproduction}
+\label{sec:appendix-repro}
+
+\todo{Short and concrete. Give the repository URL, the git commit recorded in the results
+files, the two commands that produce everything
+(\texttt{scripts/run.py} for the sweep, \texttt{scripts/analyze.py} and
+\texttt{scripts/attribute.py} for the tables and figures, and
+\texttt{scripts/compare\_models.py} for the cross-model figure), the exact package
+versions from Section~\ref{sec:setup}, and the GPU request lines. Mention that the test
+suite runs on CPU in a few seconds with no downloads, so the pipeline logic can be
+checked without cluster access.}
+
+\end{document}
