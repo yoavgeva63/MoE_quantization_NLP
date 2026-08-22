@@ -1,0 +1,1257 @@
+{
+  "config": {
+    "model_key": "olmoe",
+    "policy": "attention",
+    "bits": 3,
+    "dtype": "bfloat16",
+    "device": "cuda",
+    "corpus": "wikitext2",
+    "ppl_seq_len": 1024,
+    "ppl_stride": 1024,
+    "max_ppl_windows": null,
+    "routing_sequences": 128,
+    "routing_seq_len": 256,
+    "capture_inputs": true,
+    "input_stride": 8,
+    "top_m": 64,
+    "position_stride": 16,
+    "seed": 42,
+    "n_boot": 200,
+    "results_dir": "results",
+    "cache_dir": null,
+    "placebo_seed": 0,
+    "gpu_mem_fraction": 0.75,
+    "extra": {}
+  },
+  "environment": {
+    "python": "3.12.3",
+    "platform": "Linux-6.14.0-27-generic-x86_64-with-glibc2.39",
+    "git_commit": "601f6ebcb1734c9982691950cdfbcfb2916e7a44",
+    "torch": "2.9.1+cu128",
+    "cuda_available": true,
+    "gpu_name": "NVIDIA GeForce RTX 2080 Ti",
+    "gpu_capability": "7.5",
+    "gpu_count": 3,
+    "transformers": "4.57.6",
+    "torchao": "0.17.0",
+    "datasets": "5.0.1",
+    "bitsandbytes": null
+  },
+  "memory": {
+    "device_map": {
+      "model.embed_tokens": 0,
+      "model.layers.0": 0,
+      "model.layers.1": 0,
+      "model.layers.2": 0,
+      "model.layers.3": 0,
+      "model.layers.4": 0,
+      "model.layers.5": 0,
+      "model.layers.6": 0,
+      "model.layers.7": 0,
+      "model.layers.8": 0,
+      "model.layers.9": 0,
+      "model.layers.10": 0,
+      "model.layers.11": 0,
+      "model.layers.12": 1,
+      "model.layers.13": 1,
+      "model.layers.14": 1,
+      "model.layers.15": 1,
+      "model.norm": 1,
+      "model.rotary_emb": 1,
+      "lm_head": 1
+    },
+    "offloaded_modules": [],
+    "per_device": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 2080 Ti",
+        "peak_allocated_gb": 5.864419460296631,
+        "peak_reserved_gb": 6.119140625,
+        "total_gb": 10.56829833984375
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA GeForce RTX 2080 Ti",
+        "peak_allocated_gb": 2.4506587982177734,
+        "peak_reserved_gb": 2.720703125,
+        "total_gb": 10.56829833984375
+      },
+      {
+        "index": 2,
+        "name": "NVIDIA GeForce RTX 2080 Ti",
+        "peak_allocated_gb": 2.6425576210021973,
+        "peak_reserved_gb": 2.916015625,
+        "total_gb": 10.56829833984375
+      }
+    ],
+    "peak_allocated_gb": 10.957635879516602
+  },
+  "model_id": "allenai/OLMoE-1B-7B-0924",
+  "policy": "attention",
+  "bits": 3,
+  "audit": {
+    "policy": "attention",
+    "bits": 3,
+    "num_quantized_modules": 3088,
+    "num_plain_modules": 131,
+    "quantized_params": 6444548096,
+    "plain_params": 474613760,
+    "weight_types": {
+      "Tensor": 131,
+      "IntxUnpackedToInt8Tensor": 3088
+    },
+    "routers_quantized": {
+      "model.layers.0.mlp.gate": true,
+      "model.layers.1.mlp.gate": true,
+      "model.layers.2.mlp.gate": true,
+      "model.layers.3.mlp.gate": true,
+      "model.layers.4.mlp.gate": true,
+      "model.layers.5.mlp.gate": true,
+      "model.layers.6.mlp.gate": true,
+      "model.layers.7.mlp.gate": true,
+      "model.layers.8.mlp.gate": true,
+      "model.layers.9.mlp.gate": true,
+      "model.layers.10.mlp.gate": true,
+      "model.layers.11.mlp.gate": true,
+      "model.layers.12.mlp.gate": true,
+      "model.layers.13.mlp.gate": true,
+      "model.layers.14.mlp.gate": true,
+      "model.layers.15.mlp.gate": true
+    },
+    "num_routers": 16,
+    "num_routers_quantized": 16,
+    "num_protected_modules": 98,
+    "protected_but_quantized": [],
+    "example_quantized": [
+      "model.layers.0.mlp.gate",
+      "model.layers.0.mlp.experts.0.gate_proj",
+      "model.layers.0.mlp.experts.0.up_proj",
+      "model.layers.0.mlp.experts.0.down_proj",
+      "model.layers.0.mlp.experts.1.gate_proj"
+    ],
+    "example_plain": [
+      "model.embed_tokens",
+      "model.layers.0.self_attn.q_proj",
+      "model.layers.0.self_attn.k_proj",
+      "model.layers.0.self_attn.v_proj",
+      "model.layers.0.self_attn.o_proj"
+    ],
+    "problems": []
+  },
+  "bit_width_check": {
+    "checked": 4,
+    "allowed_levels": 8,
+    "samples": [
+      {
+        "module": "model.layers.0.mlp.experts.0.gate_proj",
+        "role": "expert",
+        "levels": 8,
+        "allowed": 8
+      },
+      {
+        "module": "model.layers.15.mlp.experts.63.down_proj",
+        "role": "expert",
+        "levels": 8,
+        "allowed": 8
+      },
+      {
+        "module": "model.layers.0.mlp.gate",
+        "role": "router",
+        "levels": 8,
+        "allowed": 8
+      },
+      {
+        "module": "model.layers.15.mlp.gate",
+        "role": "router",
+        "levels": 8,
+        "allowed": 8
+      }
+    ],
+    "violations": [],
+    "passed": true,
+    "roles_checked": [
+      "expert",
+      "router"
+    ],
+    "roles_available": {
+      "expert": 3072,
+      "router": 16
+    },
+    "covers_expected_roles": true,
+    "missing_roles": []
+  },
+  "topology": {
+    "num_experts": 64,
+    "top_k": 8,
+    "hidden_size": 2048,
+    "num_router_layers": 16,
+    "router_fqns": [
+      "model.layers.0.mlp.gate",
+      "model.layers.1.mlp.gate",
+      "model.layers.2.mlp.gate",
+      "model.layers.3.mlp.gate",
+      "model.layers.4.mlp.gate",
+      "model.layers.5.mlp.gate",
+      "model.layers.6.mlp.gate",
+      "model.layers.7.mlp.gate",
+      "model.layers.8.mlp.gate",
+      "model.layers.9.mlp.gate",
+      "model.layers.10.mlp.gate",
+      "model.layers.11.mlp.gate",
+      "model.layers.12.mlp.gate",
+      "model.layers.13.mlp.gate",
+      "model.layers.14.mlp.gate",
+      "model.layers.15.mlp.gate"
+    ],
+    "norm_topk_prob": false
+  },
+  "parameter_census": {
+    "total_params": 6919161856,
+    "router_params": 2097152,
+    "protected_params": 2097152,
+    "router_fraction": 0.0003030933577860214,
+    "protected_fraction": 0.0003030933577860214
+  },
+  "dataset": {
+    "corpus": "wikitext2",
+    "total_tokens": 288730,
+    "routing_sequences": 128,
+    "routing_seq_len": 256,
+    "routing_tokens": 32768,
+    "routing_fingerprint": "7d0ff0e9ebda0149"
+  },
+  "lm": {
+    "perplexity": 14.359219551086426,
+    "mean_nll": 2.664392235592778,
+    "scored_tokens": 288448,
+    "top1_agreement": 0.6637481990468802,
+    "output_kl_topm": 0.48137957851862706,
+    "output_positions": 18046
+  },
+  "routing": {
+    "top_k": 8,
+    "layers": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "per_layer": {
+      "0": {
+        "kl": {
+          "mean": 0.018556041880792407,
+          "ci_low": 0.018392916632792834,
+          "ci_high": 0.01878219897611295,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.004590939417916218,
+          "ci_low": 0.004550916078671019,
+          "ci_high": 0.004646259731112235,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.25335255351456,
+          "ci_low": 0.25102163075735007,
+          "ci_high": 0.25566961214485673,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.8292236328125,
+          "ci_low": 0.8242134094238281,
+          "ci_high": 0.8344429016113282,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.2060546875,
+          "ci_low": 0.2009429931640625,
+          "ci_high": 0.21152191162109374,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.30103946366921264,
+          "ci_low": 0.2992222440057901,
+          "ci_high": 0.3032315037950525,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.231109619140625,
+        "gold_usage": {
+          "marginal_entropy": 4.033604145050049,
+          "marginal_entropy_normalized": 0.9698767828288122,
+          "mean_token_entropy": 3.832331418991089,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 4.00634765625,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.044604301452637,
+          "marginal_entropy_normalized": 0.9725217613439816,
+          "mean_token_entropy": 3.8525891304016113,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.468505859375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "1": {
+        "kl": {
+          "mean": 0.02386090005175845,
+          "ci_low": 0.02366347680414016,
+          "ci_high": 0.02411172873655616,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.005846096251865163,
+          "ci_low": 0.005799944777226162,
+          "ci_high": 0.005908551032469589,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.34694181496161036,
+          "ci_low": 0.3444131864573137,
+          "ci_high": 0.3492076371817802,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.931549072265625,
+          "ci_low": 0.9284599304199219,
+          "ci_high": 0.9349716186523438,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.305389404296875,
+          "ci_low": 0.3002891540527344,
+          "ci_high": 0.3099678039550781,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.43773860193846303,
+          "ci_low": 0.43509853347374305,
+          "ci_high": 0.4409079425794033,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.77203369140625,
+        "gold_usage": {
+          "marginal_entropy": 4.0756306648254395,
+          "marginal_entropy_normalized": 0.9799820247731085,
+          "mean_token_entropy": 3.955496311187744,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.432373046875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.089646339416504,
+          "marginal_entropy_normalized": 0.9833520821443156,
+          "mean_token_entropy": 3.968848943710327,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.43408203125,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "2": {
+        "kl": {
+          "mean": 0.03588316381625134,
+          "ci_low": 0.0354920488605579,
+          "ci_high": 0.03640712002848012,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.008833557887637511,
+          "ci_low": 0.00874396979030161,
+          "ci_high": 0.008958349668165954,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.35322835556689824,
+          "ci_low": 0.34915104505171257,
+          "ci_high": 0.3568157819420321,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.941314697265625,
+          "ci_low": 0.93709716796875,
+          "ci_high": 0.9451904296875,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.400115966796875,
+          "ci_low": 0.39359359741210936,
+          "ci_high": 0.4069831848144531,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.4631405040494201,
+          "ci_low": 0.4578953502168531,
+          "ci_high": 0.46743048661670344,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.804412841796875,
+        "gold_usage": {
+          "marginal_entropy": 4.05987548828125,
+          "marginal_entropy_normalized": 0.9761937055950032,
+          "mean_token_entropy": 3.921530246734619,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.34326171875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.064743995666504,
+          "marginal_entropy_normalized": 0.977364334171876,
+          "mean_token_entropy": 3.9597320556640625,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.639404296875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "3": {
+        "kl": {
+          "mean": 0.046541998785812666,
+          "ci_low": 0.046085364826065955,
+          "ci_high": 0.0471351492860542,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.011334853878075535,
+          "ci_low": 0.011238600703209655,
+          "ci_high": 0.01146562256622623,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.3762507783685578,
+          "ci_low": 0.3718075137639062,
+          "ci_high": 0.37958485085523536,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.95050048828125,
+          "ci_low": 0.9463188171386718,
+          "ci_high": 0.9534927368164062,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.400482177734375,
+          "ci_low": 0.3934013366699219,
+          "ci_high": 0.40902252197265626,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5202979580662941,
+          "ci_low": 0.5135467970018055,
+          "ci_high": 0.5257225616630535,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.950592041015625,
+        "gold_usage": {
+          "marginal_entropy": 4.057985305786133,
+          "marginal_entropy_normalized": 0.975739212776323,
+          "mean_token_entropy": 3.8664474487304688,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.983154296875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.010629653930664,
+          "marginal_entropy_normalized": 0.9643525854279982,
+          "mean_token_entropy": 3.920468330383301,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 5.0927734375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "4": {
+        "kl": {
+          "mean": 0.04167402584837987,
+          "ci_low": 0.04131210878399614,
+          "ci_high": 0.04211825561424263,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.010315000050866274,
+          "ci_low": 0.010228650038540187,
+          "ci_high": 0.010418330808474785,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.36025497933769657,
+          "ci_low": 0.35704707685581527,
+          "ci_high": 0.36395244166437807,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.943145751953125,
+          "ci_low": 0.9398490905761718,
+          "ci_high": 0.9462295532226562,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.4405517578125,
+          "ci_low": 0.43218460083007815,
+          "ci_high": 0.44731292724609373,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.4975950522301673,
+          "ci_low": 0.4933451701974548,
+          "ci_high": 0.5030254752361287,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.85052490234375,
+        "gold_usage": {
+          "marginal_entropy": 4.0094475746154785,
+          "marginal_entropy_normalized": 0.9640683554336722,
+          "mean_token_entropy": 3.91471004486084,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.428466796875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.018076419830322,
+          "marginal_entropy_normalized": 0.9661431541336811,
+          "mean_token_entropy": 3.95914888381958,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.847412109375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "5": {
+        "kl": {
+          "mean": 0.04526148814767339,
+          "ci_low": 0.04484879154186814,
+          "ci_high": 0.04573669381963441,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.011177836854905365,
+          "ci_low": 0.011078162106556455,
+          "ci_high": 0.011296844373346993,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.37679170092269487,
+          "ci_low": 0.37155167152045576,
+          "ci_high": 0.3814914685079202,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.95068359375,
+          "ci_low": 0.9464111328125,
+          "ci_high": 0.9541114807128906,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.421905517578125,
+          "ci_low": 0.4123687744140625,
+          "ci_high": 0.4331672668457031,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.520211588109305,
+          "ci_low": 0.5128441797654915,
+          "ci_high": 0.5271442808571976,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.95733642578125,
+        "gold_usage": {
+          "marginal_entropy": 4.015979290008545,
+          "marginal_entropy_normalized": 0.9656389010013514,
+          "mean_token_entropy": 3.907743215560913,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.678466796875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.015179634094238,
+          "marginal_entropy_normalized": 0.9654466243976868,
+          "mean_token_entropy": 3.9638912677764893,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.78955078125,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "6": {
+        "kl": {
+          "mean": 0.051298331421037346,
+          "ci_low": 0.05067329211808698,
+          "ci_high": 0.052099962901340294,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.012735455902799231,
+          "ci_low": 0.01258029730138759,
+          "ci_high": 0.012934388458739931,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.3670353461529885,
+          "ci_low": 0.36315740683230613,
+          "ci_high": 0.37065643796813674,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.944976806640625,
+          "ci_low": 0.9413726806640625,
+          "ci_high": 0.9482421875,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.4857177734375,
+          "ci_low": 0.4782691955566406,
+          "ci_high": 0.49417953491210936,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5267131573266397,
+          "ci_low": 0.5218758681680071,
+          "ci_high": 0.5320771628052284,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.898406982421875,
+        "gold_usage": {
+          "marginal_entropy": 3.982800006866455,
+          "marginal_entropy_normalized": 0.9576609697931274,
+          "mean_token_entropy": 3.8927016258239746,
+          "dead_experts": 4,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.615966796875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 3.9671077728271484,
+          "marginal_entropy_normalized": 0.953887785088298,
+          "mean_token_entropy": 3.941129446029663,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.032470703125,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "7": {
+        "kl": {
+          "mean": 0.0582033877728918,
+          "ci_low": 0.05726218602287787,
+          "ci_high": 0.05923687610682578,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.01446015038872872,
+          "ci_low": 0.014238287319037469,
+          "ci_high": 0.014709065709888235,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.3648398807454214,
+          "ci_low": 0.36127986839992443,
+          "ci_high": 0.36896883640629313,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.937744140625,
+          "ci_low": 0.9342033386230468,
+          "ci_high": 0.941253662109375,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.524017333984375,
+          "ci_low": 0.5141281127929688,
+          "ci_high": 0.53485107421875,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5256195380152349,
+          "ci_low": 0.5208012540626783,
+          "ci_high": 0.5310783771884416,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.890533447265625,
+        "gold_usage": {
+          "marginal_entropy": 4.005291938781738,
+          "marginal_entropy_normalized": 0.9630691362321593,
+          "mean_token_entropy": 3.8578834533691406,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.480712890625,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 3.967564582824707,
+          "marginal_entropy_normalized": 0.953997624674649,
+          "mean_token_entropy": 3.9102044105529785,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 4.129638671875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "8": {
+        "kl": {
+          "mean": 0.06721288031440054,
+          "ci_low": 0.06619129573550424,
+          "ci_high": 0.06817717530056626,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.016719966530800434,
+          "ci_low": 0.016469910617526652,
+          "ci_high": 0.016964928167990934,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.38810088904392614,
+          "ci_low": 0.3840091187332291,
+          "ci_high": 0.39206931389080635,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.950958251953125,
+          "ci_low": 0.9472640991210938,
+          "ci_high": 0.9541053771972656,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.54083251953125,
+          "ci_low": 0.533258056640625,
+          "ci_high": 0.5472145080566406,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5652076784757583,
+          "ci_low": 0.5592453406795699,
+          "ci_high": 0.5712690918864383,
+          "n": 32768
+        },
+        "mean_experts_swapped": 2.03729248046875,
+        "gold_usage": {
+          "marginal_entropy": 4.016020774841309,
+          "marginal_entropy_normalized": 0.9656488759951014,
+          "mean_token_entropy": 3.800416946411133,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.779296875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.0222392082214355,
+          "marginal_entropy_normalized": 0.9671440931617027,
+          "mean_token_entropy": 3.871375560760498,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.218017578125,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "9": {
+        "kl": {
+          "mean": 0.07087506625640572,
+          "ci_low": 0.06969755307403318,
+          "ci_high": 0.07210534728325654,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.01747138450080854,
+          "ci_low": 0.01718661369272496,
+          "ci_high": 0.0177707792544858,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.34588143504697655,
+          "ci_low": 0.34286970894058866,
+          "ci_high": 0.3486585779446159,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.923370361328125,
+          "ci_low": 0.9196762084960938,
+          "ci_high": 0.9270034790039062,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.53497314453125,
+          "ci_low": 0.526788330078125,
+          "ci_high": 0.5446525573730469,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5224970169206244,
+          "ci_low": 0.5183913118039527,
+          "ci_high": 0.526813164735836,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.775177001953125,
+        "gold_usage": {
+          "marginal_entropy": 4.041189670562744,
+          "marginal_entropy_normalized": 0.9717007161687625,
+          "mean_token_entropy": 3.705967664718628,
+          "dead_experts": 2,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.6826171875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.04267692565918,
+          "marginal_entropy_normalized": 0.9720583254274566,
+          "mean_token_entropy": 3.793060302734375,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.824462890625,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "10": {
+        "kl": {
+          "mean": 0.08159633275482747,
+          "ci_low": 0.08047659321276228,
+          "ci_high": 0.08282624781963506,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.02005424166114267,
+          "ci_low": 0.01978211071946525,
+          "ci_high": 0.020348427861737406,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.3434318932104361,
+          "ci_low": 0.3393734213228072,
+          "ci_high": 0.34680348102565406,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.931793212890625,
+          "ci_low": 0.9277328491210938,
+          "ci_high": 0.9353080749511719,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.50506591796875,
+          "ci_low": 0.4973419189453125,
+          "ci_high": 0.5132186889648438,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5105147460407125,
+          "ci_low": 0.5052506302738152,
+          "ci_high": 0.5145825796540919,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.75628662109375,
+        "gold_usage": {
+          "marginal_entropy": 4.04280424118042,
+          "marginal_entropy_normalized": 0.9720889383393102,
+          "mean_token_entropy": 3.6131906509399414,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.163818359375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.044256210327148,
+          "marginal_entropy_normalized": 0.9724380631205617,
+          "mean_token_entropy": 3.698089122772217,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.836669921875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "11": {
+        "kl": {
+          "mean": 0.0955227007956978,
+          "ci_low": 0.09394486370347721,
+          "ci_high": 0.09713498616171279,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.023409109182153998,
+          "ci_low": 0.023027382156270804,
+          "ci_high": 0.023789066970151394,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.36442096265272994,
+          "ci_low": 0.3599698732642992,
+          "ci_high": 0.3682588475862758,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.936553955078125,
+          "ci_low": 0.9330123901367188,
+          "ci_high": 0.9398223876953125,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.53857421875,
+          "ci_low": 0.5295433044433594,
+          "ci_high": 0.546783447265625,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5480147929149553,
+          "ci_low": 0.5420793116806806,
+          "ci_high": 0.5528114455759863,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.892333984375,
+        "gold_usage": {
+          "marginal_entropy": 4.032002925872803,
+          "marginal_entropy_normalized": 0.9694917710010806,
+          "mean_token_entropy": 3.6049461364746094,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.779052734375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.014616966247559,
+          "marginal_entropy_normalized": 0.965311331379008,
+          "mean_token_entropy": 3.6957967281341553,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.23583984375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "12": {
+        "kl": {
+          "mean": 0.11770898977522393,
+          "ci_low": 0.11583090903114765,
+          "ci_high": 0.1199734240660831,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.02885597318977773,
+          "ci_low": 0.028383252100241663,
+          "ci_high": 0.02940221343442495,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.3687518133319827,
+          "ci_low": 0.3649624130319353,
+          "ci_high": 0.3721825074561821,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.932403564453125,
+          "ci_low": 0.9284049987792968,
+          "ci_high": 0.9356086730957032,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.53021240234375,
+          "ci_low": 0.5229171752929688,
+          "ci_high": 0.5368980407714844,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.5779781034718781,
+          "ci_low": 0.5724844638138563,
+          "ci_high": 0.5823371258275245,
+          "n": 32768
+        },
+        "mean_experts_swapped": 1.92889404296875,
+        "gold_usage": {
+          "marginal_entropy": 4.028528690338135,
+          "marginal_entropy_normalized": 0.9686563939382897,
+          "mean_token_entropy": 3.4773075580596924,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.664794921875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.009312629699707,
+          "marginal_entropy_normalized": 0.9640359080402094,
+          "mean_token_entropy": 3.61822772026062,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 3.38623046875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "13": {
+        "kl": {
+          "mean": 0.13737938327443544,
+          "ci_low": 0.13502521260901118,
+          "ci_high": 0.13999597097966898,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.03364836157516038,
+          "ci_low": 0.0330800379255443,
+          "ci_high": 0.03427071833883986,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.39590626713288657,
+          "ci_low": 0.3919577141717582,
+          "ci_high": 0.4004432307301613,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.946441650390625,
+          "ci_low": 0.9427459716796875,
+          "ci_high": 0.9501686096191406,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.569732666015625,
+          "ci_low": 0.5613388061523438,
+          "ci_high": 0.5779518127441406,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.6200858742220134,
+          "ci_low": 0.614436249222291,
+          "ci_high": 0.6265970695752628,
+          "n": 32768
+        },
+        "mean_experts_swapped": 2.1064453125,
+        "gold_usage": {
+          "marginal_entropy": 4.030842304229736,
+          "marginal_entropy_normalized": 0.9692127004862806,
+          "mean_token_entropy": 3.4372169971466064,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.641357421875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 4.009697437286377,
+          "marginal_entropy_normalized": 0.9641284347063737,
+          "mean_token_entropy": 3.6210508346557617,
+          "dead_experts": 2,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.574951171875,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "14": {
+        "kl": {
+          "mean": 0.15418180492878264,
+          "ci_low": 0.15119295226784005,
+          "ci_high": 0.15720155034774166,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.03789082754970252,
+          "ci_low": 0.037179184340305226,
+          "ci_high": 0.03863979233076868,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.3870918406482815,
+          "ci_low": 0.3820765147610473,
+          "ci_high": 0.3915434724885472,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.932037353515625,
+          "ci_low": 0.9269058227539062,
+          "ci_high": 0.936004638671875,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.56005859375,
+          "ci_low": 0.5512275695800781,
+          "ci_high": 0.5697059631347656,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.6146323466159629,
+          "ci_low": 0.6073780769534096,
+          "ci_high": 0.620861195518222,
+          "n": 32768
+        },
+        "mean_experts_swapped": 2.05963134765625,
+        "gold_usage": {
+          "marginal_entropy": 4.0032219886779785,
+          "marginal_entropy_normalized": 0.9625714184405624,
+          "mean_token_entropy": 3.407285690307617,
+          "dead_experts": 2,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.640869140625,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 3.979067802429199,
+          "marginal_entropy_normalized": 0.9567635643209254,
+          "mean_token_entropy": 3.6137051582336426,
+          "dead_experts": 3,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.63818359375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      },
+      "15": {
+        "kl": {
+          "mean": 0.19676419682309643,
+          "ci_low": 0.18868054777897783,
+          "ci_high": 0.2062723494052463,
+          "n": 32768
+        },
+        "js": {
+          "mean": 0.04804226424040792,
+          "ci_low": 0.046224443230614656,
+          "ci_high": 0.05014352422224846,
+          "n": 32768
+        },
+        "jaccard_distance": {
+          "mean": 0.4105048292512947,
+          "ci_low": 0.40504405080805556,
+          "ci_high": 0.41638598776467006,
+          "n": 32768
+        },
+        "set_mismatch": {
+          "mean": 0.932037353515625,
+          "ci_low": 0.9276611328125,
+          "ci_high": 0.9365562438964844,
+          "n": 32768
+        },
+        "top1_error": {
+          "mean": 0.650115966796875,
+          "ci_low": 0.6415702819824218,
+          "ci_high": 0.6609336853027343,
+          "n": 32768
+        },
+        "weight_l1": {
+          "mean": 0.6928915791327199,
+          "ci_low": 0.6822526959687479,
+          "ci_high": 0.7039841025819271,
+          "n": 32768
+        },
+        "mean_experts_swapped": 2.23065185546875,
+        "gold_usage": {
+          "marginal_entropy": 3.964660406112671,
+          "marginal_entropy_normalized": 0.9532993177845958,
+          "mean_token_entropy": 3.4167747497558594,
+          "dead_experts": 1,
+          "unused_experts": 0,
+          "max_over_mean_load": 2.73876953125,
+          "num_experts": 64,
+          "num_tokens": 32768
+        },
+        "cand_usage": {
+          "marginal_entropy": 3.936279773712158,
+          "marginal_entropy_normalized": 0.9464752181810103,
+          "mean_token_entropy": 3.5748050212860107,
+          "dead_experts": 0,
+          "unused_experts": 0,
+          "max_over_mean_load": 4.025146484375,
+          "num_experts": 64,
+          "num_tokens": 32768
+        }
+      }
+    },
+    "pooled": {
+      "kl": {
+        "mean": 0.0776575432904667,
+        "ci_low": 0.07651003923212847,
+        "ci_high": 0.07893317238302933,
+        "n": 524288
+      },
+      "js": {
+        "mean": 0.019086626191421763,
+        "ci_low": 0.018816617077377893,
+        "ci_high": 0.019388571530646444,
+        "n": 524288
+      },
+      "jaccard_distance": {
+        "mean": 0.3626740837430589,
+        "ci_low": 0.35990175200212204,
+        "ci_high": 0.3647866063240201,
+        "n": 524288
+      },
+      "set_mismatch": {
+        "mean": 0.9321708679199219,
+        "ci_low": 0.9301871299743653,
+        "ci_high": 0.9340650558471679,
+        "n": 524288
+      },
+      "top1_error": {
+        "mean": 0.4758625030517578,
+        "ci_low": 0.47315258979797364,
+        "ci_high": 0.47864642143249514,
+        "n": 524288
+      },
+      "weight_l1": {
+        "mean": 0.5277611250749601,
+        "ci_low": 0.5240756143864154,
+        "ci_high": 0.5308555283279578,
+        "n": 524288
+      },
+      "mean_experts_swapped": 1.8838539123535156,
+      "gold_usage": {
+        "marginal_entropy": 4.148486137390137,
+        "marginal_entropy_normalized": 0.9975000629348936,
+        "mean_token_entropy": 3.7257468700408936,
+        "dead_experts": 0,
+        "unused_experts": 0,
+        "max_over_mean_load": 1.403045654296875,
+        "num_experts": 64,
+        "num_tokens": 524288
+      },
+      "cand_usage": {
+        "marginal_entropy": 4.147863388061523,
+        "marginal_entropy_normalized": 0.9973503233735423,
+        "mean_token_entropy": 3.8101325035095215,
+        "dead_experts": 0,
+        "unused_experts": 0,
+        "max_over_mean_load": 1.677154541015625,
+        "num_experts": 64,
+        "num_tokens": 524288
+      }
+    }
+  }
+}

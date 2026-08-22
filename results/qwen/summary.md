@@ -7,12 +7,15 @@
 | gold | BF16 | 7.9687 | 0.000000 | 0.00% | 0.0000 | 0.9996 |
 | uniform | INT8 | 9.3465 | 0.023470 | 15.65% | 0.2118 | 0.9996 |
 | mixed | INT8 | 9.2846 | 0.017484 | 12.75% | 0.1853 | 0.9996 |
+| placebo | INT8 | 9.3461 | 0.023470 | 15.65% | 0.2118 | 0.9996 |
 | uniform | INT4 | 12.0080 | 0.086117 | 30.62% | 0.3558 | 0.9993 |
 | mixed | INT4 | 11.2445 | 0.035489 | 17.90% | 0.2444 | 0.9995 |
 | placebo | INT4 | 12.0076 | 0.086117 | 30.62% | 0.3558 | 0.9993 |
+| attention | INT4 | 10.5069 | 0.069109 | 27.95% | 0.3211 | 0.9994 |
 | uniform | INT3 | 9555.4541 | 0.490062 | 72.48% | 0.7444 | 0.9929 |
 | mixed | INT3 | 1236.4343 | 0.314730 | 55.69% | 0.6166 | 0.9964 |
 | placebo | INT3 | 9563.0391 | 0.490072 | 72.48% | 0.7444 | 0.9929 |
+| attention | INT3 | 287.7667 | 0.337966 | 59.87% | 0.6346 | 0.9944 |
 
 ## Part 1 decision gate
 
@@ -26,10 +29,12 @@
 - INT4 perplexity: uniform 12.0080 vs mixed 11.2445
 - INT3 perplexity: uniform 9555.4541 vs mixed 1236.4343
 
-**Verdict: at least one bit-width shows a real advantage for router protection.** Run the parameter-matched placebo control before claiming it, to rule out that any protected 0.02% would do as well.
+**Verdict: at least one bit-width shows a real advantage for router protection.** Run the parameter-count-matched placebo control before claiming it, to rule out that protecting any equally-sized set of weights would do as well. The placebo is matched on parameter count only - see `verification.md` for what it protects and how few tokens reach it.
 
 ## Correctness gates
 
+- **attention INT3**: 4440 modules quantized, 24/24 routers quantized, bit-width check passed
+- **attention INT4**: 4440 modules quantized, 24/24 routers quantized, bit-width check passed
 - **gold BF16**: 0 modules quantized, 0/24 routers quantized, bit-width check passed
   - gold self-comparison: KL=0.00e+00, top-1 error=0.00e+00 (passed)
 - **mixed INT3**: 4512 modules quantized, 0/24 routers quantized, bit-width check passed
@@ -37,6 +42,7 @@
 - **mixed INT8**: 4512 modules quantized, 0/24 routers quantized, bit-width check passed
 - **placebo INT3**: 4535 modules quantized, 24/24 routers quantized, bit-width check passed
 - **placebo INT4**: 4535 modules quantized, 24/24 routers quantized, bit-width check passed
+- **placebo INT8**: 4535 modules quantized, 24/24 routers quantized, bit-width check passed
 - **uniform INT3**: 4536 modules quantized, 24/24 routers quantized, bit-width check passed
 - **uniform INT4**: 4536 modules quantized, 24/24 routers quantized, bit-width check passed
 - **uniform INT8**: 4536 modules quantized, 24/24 routers quantized, bit-width check passed
