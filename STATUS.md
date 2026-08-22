@@ -85,7 +85,11 @@ precision budget for perplexity, and the paper should not try.
 **Part 2 attribution** (`attribution.md`): of the routing flips caused by exactly one
 mechanism, the router's own weights account for 43.4% / 40.3% at INT8 (OLMoE / Qwen),
 62.2% / 58.0% at INT4, and 58.0% / 45.4% at INT3. So upstream activation drift dominates
-at INT8, router weights dominate at INT4, and INT3 is mixed across the two models. Note
+at INT8 and router weights dominate at INT4, on both models. At INT3, OLMoE's 58.0% is
+consistent with its INT4 result; Qwen's 45.4% is the only cell below half, but it sits in
+the saturated regime we exclude below, so it should not be read as activation dominance
+returning at very low precision — we cannot dismiss Qwen INT3 in Part 1 and then quote it
+in Part 2. Note
 the two mechanisms overlap and are **not additive** — do not quote them as an "X% /
 (100−X)%" split. The analysis self-validates: the rebuilt reference cell reproduces gold's
 recorded routing decisions at 99.66% (OLMoE) and 99.37% (Qwen) mean top-1 agreement,
