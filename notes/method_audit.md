@@ -333,17 +333,24 @@ tabulated nowhere. It is sitting unused. Pulled out right now, at INT3:
 
 | Model / policy | Dead expert-slots (sum over layers) | Layers with ≥1 fully unused expert | Worst-layer norm. entropy | Worst-layer max/mean |
 |---|---|---|---|---|
-| Qwen `uniform` INT3 | **222 / 1440 (15.4%)** | 6 | 0.7585 | 12.53 |
+| Qwen `uniform` INT3 | **222 / 1440 (15.4%)** | 5 | 0.7585 | 12.53 |
 | Qwen `mixed` INT3 | **55 / 1440 (3.8%)** | 0 | 0.8752 | 9.94 |
-| Qwen `placebo` INT3 | 222 / 1440 | 6 | 0.7585 | 12.53 |
+| Qwen `placebo` INT3 | 220 / 1440 | 5 | 0.7585 | 12.53 |
 | OLMoE `uniform` INT3 | 6 / 1024 | 0 | 0.9389 | 5.86 |
 | OLMoE `mixed` INT3 | 9 / 1024 | 0 | 0.9425 | 4.69 |
 
 That first pair is the proposal's promise delivered verbatim: quantization causes expert
-collapse (Qwen INT3, 15.4% of expert slots starved, 6 layers with experts receiving zero
+collapse (Qwen INT3, 15.4% of expert slots starved, 5 layers with experts receiving zero
 tokens), and the router safeguard keeps the rare experts working (down to 3.8%, no fully
-unused expert anywhere). `placebo` reproducing `uniform` exactly is the control passing on
+unused expert anywhere). `placebo` landing next to `uniform` is the control passing on
 this metric too. And OLMoE showing nothing is the honest boundary condition.
+
+*Resolved.* This analysis now exists as `results/<model>/collapse.md`. Two counts above
+were read off a quick pull and are corrected here to match it: 5 layers with a fully
+unused expert rather than 6, and `placebo` at 220 rather than exactly 222. The finished
+table also carries `attention`, which sits at 74 / 1440 with no fully unused expert —
+closer to `mixed` than to `uniform`, which is a qualification on router specificity that
+this audit could not have seen.
 
 #### Tier 2 — computable offline from the `.pt` artifacts
 
@@ -837,6 +844,12 @@ queue. Verify the arguments before either duplicating this work or assuming it i
 
 *Buys:* a complete placebo row; small.
 
+*Resolved, and this reasoning was wrong.* Slurm's `Command=` field simply does not echo
+positional arguments; a completed earlier job showed it running with the `qwen` arguments
+it had been given. The arguments do survive submission, jobs 773490 and 773491 ran as
+intended, and the INT8 placebo now exists on both models. The placebo row is complete at
+all three bit-widths.
+
 **5. C4 robustness point — OLMoE, INT4 only.** `gold` + `uniform` + `mixed` = 3 runs,
 ~35 min. Needs `configs/olmoe_c4.yaml` (a copy of `configs/olmoe.yaml` with
 `corpus: c4` — config only, no code, since `data.py` already supports C4) and a separate
@@ -903,7 +916,7 @@ Three things need attention before the paper is written, in this order:
    fixes that.
 2. **The expert-collapse promise is already satisfied by data on disk and nobody has
    looked.** Qwen INT3 starves 15.4% of expert slots under `uniform` and 3.8% under
-   `mixed`, with zero fully-unused experts under `mixed` versus six layers' worth under
+   `mixed`, with zero fully-unused experts under `mixed` versus five layers' worth under
    `uniform`. Zero GPU. Do this first.
 3. **The disjointness test and the "X% / (100−X)%" attribution sentence both need
    rewording**, and the bit-width gate never actually inspected a router or an expert on
