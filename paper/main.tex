@@ -62,7 +62,7 @@
 % Drafting aids. DELETE BOTH LINES BEFORE SUBMISSION, after \todo count reaches zero.
 % \todo renders visibly in red so an unwritten passage cannot survive a proofread.
 %
-% The noted build is 16 pages and says nothing about the page budget, because the notes
+% The noted build is 17 pages and says nothing about the page budget, because the notes
 % are longer than the prose they stand in for. To measure the budget, define both macros
 % to {} and recompile: the document is then 8 pages, body ~2.9, references ~0.4,
 % appendix ~4.7. That is the space the tables, figures and captions actually cost, and it
@@ -337,9 +337,20 @@ rests on intervals being disjoint.}
 
 \paragraph{Router precision in MoE quantization.}
 \todo{\citet{fu2025eaquant} run experts at W4A4 with the router at W8A8 and benchmark
-OLMoE-1B-7B among others, so their numbers are directly comparable to our primary model.
-Router protection is their \emph{baseline}, adopted without ablation. State the gap: its
-isolated contribution is never measured. \citet{deng2026gemq} independently report that
+OLMoE-1B-7B, our primary model. Concede immediately and precisely that they \emph{do}
+vary router precision: their Table~4, ablating a different component, reports that at
+fixed W3A4 experts a router at W3A4 / W4A4 / W8A8 gives WikiText-2 perplexity
+11.09 / 10.94 / 10.77 and average zero-shot accuracy 62.33 / 63.00 / 63.30. State the
+gaps rather than the absence --- that comparison moves router weight and activation
+precision together, sits on a calibrated rotation-based baseline, never reaches full
+precision (W8A8 is its ceiling), carries no uncertainty, and is scored only on end-task
+metrics, so it cannot say what happens to routing itself.
+\note{Corrected: an earlier draft of this paragraph claimed the isolated contribution is
+``never measured'' and that our numbers are ``directly comparable''. Both were wrong ---
+see \texttt{notes/prior\_art.md}. Their FP16 OLMoE WikiText-2 perplexity is 7.49 against
+our BF16 8.36 on the same checkpoint, so claim the same \emph{model}, never comparable
+\emph{numbers}.}
+\citet{deng2026gemq} independently report that
 routers are under 0.04\% of MoE parameters --- consistent with our own census
 (Table~\ref{tab:params}) --- and fine-tune them; \citet{sramoe} note that routers are
 typically left in full precision because they are small, yet errors from preceding
@@ -666,9 +677,11 @@ the only randomness in the intervals is the sampling of sequences.}
 (a) \textbf{Model substitution.} The proposal named
 \texttt{Qwen/Qwen2.5-MoE-1.4B-A14B}, which does not exist on HuggingFace and is
 internally contradictory --- 1.4B total parameters with 14B active is impossible. We use
-OLMoE-1B-7B as the primary model (small enough to iterate on, and benchmarked by
-\citet{fu2025eaquant}, so our numbers are comparable) and Qwen1.5-MoE-A2.7B as a second
-architecture with a structurally different router configuration.
+OLMoE-1B-7B as the primary model (small enough to iterate on, and the same checkpoint
+\citet{fu2025eaquant} benchmark, which situates us in the same literature --- though not,
+as Section~\ref{sec:limitations} notes, on the same perplexity scale) and
+Qwen1.5-MoE-A2.7B as a second architecture with a structurally different router
+configuration.
 (b) \textbf{A bit-width sweep rather than INT8 alone.} At INT8 any effect risks being
 smaller than measurement noise, which would leave us unable to claim anything in either
 direction; a sweep also yields a trend rather than a single point. In the event this was
@@ -1216,6 +1229,11 @@ no downstream task evaluation, so we cannot say whether the routing changes we m
 translate into task degradation.
 \textbf{(3) Weight-only quantization.} No activation quantization, so our setting is not
 directly comparable to W4A4 results such as \citet{fu2025eaquant}'s.
+\textbf{(3b) Our perplexities are not on their scale.} \citet{fu2025eaquant} report FP16
+WikiText-2 perplexity of 7.49 for OLMoE-1B-7B where our BF16 \gold{} run gives 8.36 on the
+same checkpoint. We have not reconciled the gap, which is most likely evaluation protocol
+(sequence length, stride, or split handling); until we do, we compare policies only within
+our own runs and never against published absolute numbers.
 \textbf{(4) No calibration-based baseline.} By design --- the question is about a
 calibration-free structural choice --- but it means we cannot say how large the remaining
 headroom is relative to GPTQ-style methods.

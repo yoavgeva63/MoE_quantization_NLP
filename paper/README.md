@@ -88,10 +88,11 @@ Two structural notes:
 - The page limit is 8 pages excluding references and appendix. `Limitations` is an
   unnumbered starred section per ACL convention; the course guidelines do not exempt it,
   so budget it inside the 8 pages.
-- **The page budget, measured.** With the `\todo` blocks rendering, the document is 16
-  pages: body ~11.6, references ~1.0, appendix ~3.4. The notes are far longer than the
-  prose they stand in for, so that number says nothing about the real budget. Suppress
-  them and the whole document is **8 pages: body ~2.9, references ~0.4, appendix ~4.7**:
+- **The page budget, measured.** With the `\todo` blocks rendering, the document is 17
+  pages. The notes are far longer than the prose they stand in for, so that number says
+  nothing about the real budget — it grows every time a note is added, and has already gone
+  16 → 17 that way. Suppress them and the whole document is **8 pages: body ~2.9,
+  references ~0.4, appendix ~4.7**:
 
 ```bash
 sed 's|^\\long\\def\\todo#1{.*$|\\long\\def\\todo#1{}|; s|^\\long\\def\\note#1{.*$|\\long\\def\\note#1{}|' \
@@ -220,6 +221,12 @@ forum pages behind a browser check:
 One title changed upstream and the bib follows the current one: arXiv:2406.08155 circulated
 as "Examining Post-Training Quantization for Mixture-of-Experts: A Benchmark" but v2 is
 titled "QuantMoE-Bench: Examining Post-Training Quantization for Mixture-of-Experts".
+
+The same three OpenReview papers are also the ones the prior-art check could not read, so
+their *content* is unverified as well as their metadata — and `routequant2026` is the one
+whose content could still change our positioning. See `notes/prior_art.md`. Note that
+arxiv.org is reachable from the cluster with `curl` even though the agent web-fetch path
+hangs on it, so anything with an arXiv ID can be read locally.
 
 ## Known gaps in the results, reflected in the skeleton
 
