@@ -198,8 +198,10 @@ def decision_gate(runs: list[dict]) -> list[str]:
     if any(verdicts):
         lines.append(
             "**Verdict: at least one bit-width shows a real advantage for router "
-            "protection.** Run the parameter-matched placebo control before claiming it, "
-            "to rule out that any protected 0.02% would do as well."
+            "protection.** Run the parameter-count-matched placebo control before claiming "
+            "it, to rule out that protecting any equally-sized set of weights would do as "
+            "well. The placebo is matched on parameter count only - see "
+            "`verification.md` for what it protects and how few tokens reach it."
         )
     elif any(losses):
         lines.append(

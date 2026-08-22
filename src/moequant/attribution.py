@@ -11,18 +11,26 @@ matrix multiply each:
 
     A = X_gold  @ W_gold^T     reference; reproduces the gold run's logits
     B = X_gold  @ W_quant^T    router weight error alone
-    C = X_quant @ W_gold^T     upstream activation drift alone (what `mixed` does)
-    D = X_quant @ W_quant^T    both (what `uniform` does)
+    C = X_quant @ W_gold^T     upstream activation drift alone (the `mixed` condition)
+    D = X_quant @ W_quant^T    both mechanisms together
 
 Every metric is computed against A, which makes B and C directly comparable and lets us
 say what fraction of the damage in D each mechanism accounts for. The two are not
 additive - routing is a top-k argmax over a softmax, so errors can cancel as easily as
-compound - and the residual is reported explicitly as an interaction term rather than
-quietly folded into one of the shares.
+compound - and the residual is reported explicitly as an interaction term, with its own
+bootstrap interval, rather than quietly folded into one of the shares. Because the
+residual is large and negative on both models, the shares are *not* a partition: they
+cannot be quoted as "X% weights, (100-X)% activations".
 
 Activations come from the `mixed` run rather than `uniform`: both quantize the same expert
 and attention weights, but only `mixed` leaves the routers alone, so its hidden states are
 the ones that isolate upstream drift from any feedback through changed routing decisions.
+
+That choice makes C genuinely the `mixed` condition, but it means **D is not the `uniform`
+run**. D pairs quantized router weights with the `mixed` run's activations, so it omits
+the feedback of perturbed routing decisions on later layers' hidden states. The gap is
+measurable and grows with damage (OLMoE INT3: D 50.01% vs uniform 52.52%; Qwen INT3:
+68.58% vs 72.48%), and it is the size of that feedback effect rather than an error.
 """
 
 from __future__ import annotations
@@ -275,9 +283,14 @@ def attribute(cells: Cells, n_boot: int = 200, seed: int = 0) -> dict:
             pooled_groups, n_boot, seed=seed,
         ),
     }
-    shares["interaction"] = {
-        "mean": 1.0 - shares["weights_of_both"]["mean"] - shares["activations_of_both"]["mean"]
-    }
+    # The residual is an exact rearrangement of the two shares above, so it gets a real
+    # interval from the same resamples rather than a point estimate standing beside two
+    # numbers that have one.
+    shares["interaction"] = _grouped_ratio_ci(
+        flips["both"] - flips["weights_only"] - flips["activations_only"],
+        flips["both"],
+        pooled_groups, n_boot, seed=seed,
+    )
 
     return {
         "top_k": cells.top_k,

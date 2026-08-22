@@ -204,13 +204,40 @@ sbatch scripts/slurm/run_placebo.sh olmoe
 # or: python scripts/run.py --config configs/olmoe.yaml --policies placebo --bits 4 3
 ```
 
-This protects a random set of modules with the same parameter count as the routers. If it
-helps as much as protecting the routers, the effect was about keeping *some* weights in
-high precision and the router hypothesis is not supported.
+This protects randomly chosen non-router modules with the same total parameter count as the
+routers. If it helps as much as protecting the routers, the effect was about keeping *some*
+weights in high precision and the router hypothesis is not supported. Note what it does
+*not* control for: with `placebo_seed=0` the draw is a single expert down-projection in a
+single layer, on the compute path for ~11% (OLMoE) / ~5% (Qwen) of tokens, so it cannot
+speak to whether any high-precision island on the every-token, every-layer path would help.
+See [ARCHITECTURE.md](ARCHITECTURE.md) and `results/<model>/verification.md`.
 
 **If the verdict says no separation**, that is the honest Part 1 answer. Proceed to Part 2
 (see [OVERVIEW.md](OVERVIEW.md)); the router input activations it needs were already
 captured during these runs.
+
+## Step 5: the offline analyses
+
+None of these needs a GPU or the cluster. They read artifacts already written by Step 2.
+
+```bash
+python scripts/attribute.py        --results-dir results/olmoe --bits 8 4 3 --n-boot 10000
+python scripts/collapse.py        --results-dir results/olmoe
+python scripts/paired_bootstrap.py --results-dir results/olmoe
+python scripts/verify_offline.py   --results-dir results/olmoe
+```
+
+- `attribute.py` — the Part 2 four-cell decomposition; writes `attribution.{md,json,pdf}`.
+- `collapse.py` — per-layer expert-load balance, which is what actually detects expert
+  collapse; the pooled entropy in `summary.md` cancels it. Writes `collapse.{md,json,pdf}`.
+- `paired_bootstrap.py` — paired-difference test on `mixed − uniform`, the correct form of
+  the disjointness check. Writes `paired_bootstrap.{md,json}`.
+- `verify_offline.py` — distinct-value counts for every output channel of every router in
+  every run, plus bit-identity against gold and the placebo derivation. Writes
+  `verification.{md,json}`. Exits non-zero if any run fails.
+
+They read the `.pt` artifacts with `mmap=True`; on shared storage the largest is ~400 MB and
+a full pass over one model takes under two minutes.
 
 ## Output layout
 
@@ -226,7 +253,11 @@ results/olmoe/
 ├── uniform_int4/metrics.json
 ├── mixed_int4/metrics.json
 ├── figures.pdf
-└── summary.md
+├── summary.md                 analyze.py
+├── attribution.{md,json,pdf}  attribute.py
+├── collapse.{md,json,pdf}     collapse.py
+├── paired_bootstrap.{md,json} paired_bootstrap.py
+└── verification.{md,json}     verify_offline.py
 ```
 
 The gold artifacts are split by consumer on purpose. A candidate run reads only

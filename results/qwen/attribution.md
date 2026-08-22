@@ -2,16 +2,18 @@
 
 Routing drift split into the router's own rounded weights and the drift in the hidden states arriving at the router, rebuilt offline from the captured inputs.
 
-| Bits | Weights only | Activations only | Both (uniform) | Weight share of both | Weight share of mechanisms |
-|------|--------------|------------------|----------------|----------------------|----------------------------|
-| INT8 | 8.81% | 13.04% | 15.70% | 56.1% [55.0, 57.3] | 40.3% [39.8, 40.9] |
-| INT4 | 25.00% | 18.11% | 30.25% | 82.6% [81.9, 83.4] | 58.0% [57.6, 58.4] |
-| INT3 | 45.76% | 55.06% | 68.58% | 66.7% [66.1, 67.3] | 45.4% [45.1, 45.6] |
+Cell D (`both`) is **not** the `uniform` run: it pairs quantized router weights with the `mixed` run's activations, so it omits the feedback of changed routing on later layers' hidden states. The cross-check at the bottom measures that gap.
+
+| Bits | Weights only | Activations only | Both (no routing feedback) | Weight share of both | Weight share of mechanisms |
+|------|--------------|------------------|---------------------------|----------------------|----------------------------|
+| INT8 | 8.81% | 13.04% | 15.70% | 56.1% [55.0, 57.1] | 40.3% [39.8, 40.9] |
+| INT4 | 25.00% | 18.11% | 30.25% | 82.6% [81.9, 83.4] | 58.0% [57.5, 58.5] |
+| INT3 | 45.76% | 55.06% | 68.58% | 66.7% [66.2, 67.3] | 45.4% [45.1, 45.6] |
 
 ## Routing KL by mechanism
 
-| Bits | Weights only | Activations only | Both (uniform) |
-|------|--------------|------------------|----------------|
+| Bits | Weights only | Activations only | Both (no routing feedback) |
+|------|--------------|------------------|---------------------------|
 | INT8 | 0.005292 | 0.020749 | 0.026038 |
 | INT4 | 0.044367 | 0.038740 | 0.083575 |
 | INT3 | 0.166601 | 0.314523 | 0.453984 |
@@ -26,9 +28,11 @@ Cell A is rebuilt from the stored activations and weights; it must reproduce the
 
 ## Reading these numbers
 
-The two mechanisms are not additive, so the shares of `both` do not sum to 100%. A negative residual means the mechanisms flip overlapping sets of tokens: a token that either source alone would have flipped is counted once in `both` but twice across the two single-mechanism cells. The residual is reported rather than folded into a share: INT8 -39.1%, INT4 -42.5%, INT3 -47.0%.
+The two mechanisms are not additive, so the shares of `both` do not sum to 100% and **must not be quoted as a partition** of the form "X% router weights, (100-X)% activation drift". A negative residual means the mechanisms flip overlapping sets of tokens: a token that either source alone would have flipped is counted once in `both` but twice across the two single-mechanism cells. The residual is reported with its own interval rather than folded into a share: INT8 -39.1% [-40.5, -37.7], INT4 -42.5% [-43.5, -41.6], INT3 -47.0% [-47.8, -46.2].
 
-The last column is the interpretable one: of the routing flips caused by exactly one mechanism, what fraction comes from the router's own weights. Above 50% means router protection addresses the dominant source at that precision.
+The last column is the interpretable one: of the routing flips caused by exactly one mechanism, what fraction comes from the router's own weights. Above 50% means router protection addresses the dominant source at that precision. This is the quantity the paper should quote, because it is a share of a well-defined set.
+
+Every cell also carries a reconstruction-noise floor: cell A is rebuilt from fp16-stored activations in CPU fp32 against a bf16 GPU forward pass, so the agreement reported above is the ceiling on how exactly any cell can reproduce the run. All the differences reported here are well clear of it.
 
 ## Cross-check against Part 1
 

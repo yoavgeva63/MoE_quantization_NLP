@@ -107,10 +107,40 @@ Three design points:
   bits rather than the specialised `Int8WeightOnlyConfig` / `Int4WeightOnlyConfig`, so a
   trend across bit-widths reflects precision alone and not a change of kernel.
 
-`sample_placebo_modules` builds the parameter-matched control by greedily accumulating
-random non-router modules until within tolerance of the router budget, seeded for
-reproducibility. A candidate that would carry the total past the upper bound is skipped
-rather than added, since a later smaller module may still land the set in range.
+`sample_placebo_modules` builds the parameter-count-matched control. It sets the budget to
+the total router parameter count across *all* layers, filters the candidate pool to modules
+no larger than that whole budget, shuffles with `random.Random(placebo_seed)`, then
+accumulates until within `tolerance` of the budget.
+
+**On both real checkpoints that loop terminates after a single draw**, so the greedy
+accumulation and the tolerance band are never exercised. The arithmetic makes the first
+pick sufficient on its own:
+
+| Model | Protected module (`placebo_seed=0`) | Params | Ratio to router budget | Candidate pool |
+|-------|-------------------------------------|--------|------------------------|----------------|
+| OLMoE-1B-7B | `model.layers.14.mlp.experts.10.down_proj` | 2,097,152 | **1.000000×** | 3,072 modules, all this size |
+| Qwen1.5-MoE-A2.7B | `model.layers.19.mlp.experts.45.down_proj` | 2,883,584 | **0.977778×** | 4,320 of this size plus 24 × 2,048 |
+
+On OLMoE every eligible candidate is an expert projection of `2048 × 1024` params, which is
+*exactly* the whole 16-layer router budget; the attention projections are twice that and
+the `n <= budget` pool filter excludes them. On Qwen the expert projections are
+`2048 × 1408` = 0.978× the budget. Either way one draw lands in tolerance immediately. The
+selection is deterministic given `placebo_seed`, and `scripts/verify_offline.py` re-derives
+it from a meta-device skeleton and writes it into `results/<model>/verification.md`, because
+the FQNs are not recorded in any `metrics.json` — only `num_protected_modules`.
+
+**The control is matched on parameter count and on nothing else, and the mismatch that
+matters is activation exposure.** A router is read by every token in every layer. Measured
+from the gold router logits, the protected expert projection is on the compute path for
+**11.43%** of the 32,768 routing tokens on OLMoE (top-8 of 64) and **5.04%** on Qwen
+(top-4 of 60), in one layer only. Counting token×layer forward events, the routers are
+exposed 16 / 0.1143 ≈ **140×** more on OLMoE and 24 / 0.0504 ≈ **477×** more on Qwen.
+
+So the placebo rules out *"any high-precision parameters help"* — it lands on `uniform` to
+six decimal places on both models — and structurally cannot address *"any high-precision
+island on the every-token, every-layer main path helps"*. The `attention` policy, already
+implemented here and asserted by `verify.py`, is the run with the matching exposure
+profile; it has never been executed.
 
 ### `verify.py` — did it actually happen?
 
@@ -137,9 +167,24 @@ would appear to confirm whatever `mixed` showed.
 **Bit-width check.** Independent of torchao's own bookkeeping. Under per-axis integer
 quantization each output channel is `scale * q` for integer `q`, so an N-bit weight can
 show at most `2**N` distinct values per row. `effective_levels()` counts them. A row with
-thousands of distinct values was never quantized, whatever the config claimed. The sampled
-modules are spread across the depth of the model rather than taken from the front, which
-would only ever inspect layer 0.
+thousands of distinct values was never quantized, whatever the config claimed.
+
+The sample is drawn **per role** — router, expert projection, attention, other — with at
+least one module from each role present in the quantized pool. It used to be drawn by
+striding the candidate list, on the reasoning that this spreads the sample across depth.
+It does not: the number of quantizable modules per layer happens to divide the stride on
+both checkpoints (197 per layer on OLMoE with `3152 // 4 = 4 × 197`; 189 on Qwen with
+`4536 // 4 = 6 × 189`), so every pick landed on `self_attn.q_proj` and the check never
+inspected a router or an expert on the `uniform` and `mixed` runs. The precision claim was
+being made about four attention projections. Role-based sampling cannot fail that way
+whatever the module layout, and `check_bit_width` now also reports which roles it covered
+and refuses to pass vacuously when a role it expected is absent from the pool.
+
+The in-pipeline check still inspects at most 8 rows of each sampled module, which is a
+smoke test. `scripts/verify_offline.py` is the strong version: it reads the router weights
+saved in every run's artifacts and counts distinct values in **every output channel of
+every router in every layer of every run**, with no GPU. That is what
+`results/<model>/verification.md` records, and it is the statement the paper should cite.
 
 ### `capture.py` — hooking the routers
 
@@ -183,6 +228,55 @@ Expert load is reported as marginal usage entropy, *per-token* routing entropy (
 marginal alone conflates load imbalance with router confidence), dead-expert count, and
 max-over-mean load ratio.
 
+`compare_routing` reports these both per layer and pooled, and **the pooled figure is the
+wrong one for expert collapse**: it concatenates tokens across layers into one histogram
+before measuring, so expert *j* in layer 0 and expert *j* in layer 12 land in the same bin
+and imbalances in opposite directions cancel. See `collapse.py`.
+
+`paired_bootstrap_ci` is for comparing two policies rather than a policy against gold.
+The Part 1 decision gate asks whether two separately-built intervals overlap, which
+discards a pairing that is present in the data: both arms are measured on the same tokens
+and bootstrapped with the same seed over the same sequence groups, so the replicates are
+the same resamples. Differencing inside each replicate cancels the sequence-level variation
+the two arms share. The overlap test is the conservative version, not the wrong answer, so
+it stays as the headline and the paired result is reported alongside in
+`results/*/paired_bootstrap.md`.
+
+### `collapse.py` — per-layer expert balance
+
+Two tiers at deliberately different token resolutions, because each field is only
+trustworthy at one of them. **Tier 1** reads `routing.per_layer.<L>.cand_usage` out of a
+run's `metrics.json`: those fields were computed on all 32,768 routing tokens, which is the
+only resolution at which a zero selection count means an expert really received nothing, so
+dead and unused counts come from there. **Tier 2** rebuilds per-expert counts from the gold
+`artifacts.pt` and each run's `router_inputs.pt` — the runs never stored counts as such —
+to get Gini, max expert share, top-decile load share and KL of the load against uniform.
+Those inputs were captured every 8th token, which is ample for ratio statistics and
+inflates zero counts, so Tier 2 never reports dead or unused experts.
+
+Normalized entropy is kept for continuity with the existing tables but it is the wrong
+shape for the job: uniform load is its *maximum*, so its gradient is zero exactly where the
+null hypothesis sits. On Qwen at INT3 the pooled entropy fell 0.9996 → 0.9929, which reads
+as a null, while per layer it falls to 0.7585 with 15.4% of expert slots starved. Gini and
+KL against uniform have no such ceiling and separate the same runs by 2.1×.
+
+### `attribution.py` — Part 2, offline
+
+The four-cell decomposition. Because `capture.py` already recorded each router's input
+activations and each run stored the dequantized router weights it used, all four
+combinations of gold/quantized weights and activations are one `F.linear` each on the CPU —
+no second sweep and no GPU. `check_reconstruction` is the gate: cell A must reproduce the
+routing decisions the gold run recorded, and below 95% top-1 agreement the decomposition is
+measuring something other than quantization. It achieves 99.66% (OLMoE) and 99.37% (Qwen),
+which is also the noise floor every cell inherits from fp16-stored activations recomputed
+in CPU fp32 against a bf16 GPU forward pass.
+
+Cell C uses the `mixed` run's activations, which is what makes it exactly the `mixed`
+condition — and what makes cell D *not* the `uniform` run, since it omits the feedback of
+changed routing on later layers' hidden states. Both facts are load-bearing and both are
+stated in the module docstring, because mislabelling D as `uniform` would turn a small
+extra result into an apparent inconsistency.
+
 ### `data.py` and `evaluate.py`
 
 `data.py` is pure functions of (corpus, tokenizer, seed) with no run-to-run state, which
@@ -211,7 +305,7 @@ does not, something upstream is nondeterministic and no other number can be trus
 
 ## Testing
 
-136 tests, no GPU and no downloads, running in about six seconds.
+199 tests, no GPU and no downloads, running in about twelve seconds.
 
 `tests/conftest.py` builds a synthetic MoE deliberately shaped like the real ones:
 `model.layers.{i}.mlp.gate` for the router, `mlp.experts.{j}.gate_proj` inside experts,
@@ -234,21 +328,30 @@ src/moequant/
 ├── quantize.py     which modules stay in BF16 (torchao FqnToConfig policies)
 ├── verify.py       did the quantization do what we asked?
 ├── capture.py      forward hooks: router logits and inputs
-├── metrics.py      KL, JS, top-k mismatch, entropy, bootstrap CIs
+├── metrics.py      KL, JS, top-k mismatch, entropy, bootstrap CIs (paired and marginal)
+├── collapse.py     per-layer expert-load balance, Gini / shares / KL vs uniform
+├── attribution.py  Part 2 four-cell decomposition (offline, no GPU)
 ├── data.py         WikiText-2, seeded routing subsets, PPL windows
 ├── evaluate.py     perplexity + output-distribution drift
 ├── config.py       experiment config and environment capture
 └── runner.py       one (model, policy, bits) run, end to end
 
 scripts/
-├── inspect_model.py   architecture discovery (meta device, no GPU)
-├── run.py             sweep driver
-├── analyze.py         figures, tables, decision gate
-└── slurm/             cluster job scripts
+├── inspect_model.py     architecture discovery (meta device, no GPU)
+├── run.py               sweep driver
+├── analyze.py           figures, tables, decision gate
+├── attribute.py         Part 2 attribution report
+├── collapse.py          per-layer expert-collapse tables
+├── paired_bootstrap.py  paired-difference test on mixed - uniform
+├── verify_offline.py     router bit-identity and level counts, placebo derivation
+└── slurm/               cluster job scripts
 
-tests/              136 tests, CPU only, ~6s
+tests/              199 tests, CPU only, ~12s
 configs/            olmoe.yaml, qwen.yaml
 ```
+
+Everything under `scripts/` except `run.py` is CPU-only and reads artifacts already on
+disk, so the whole analysis side of the project reruns without touching the cluster.
 
 ## Deliberate non-goals in Part 1
 
@@ -257,6 +360,7 @@ configs/            olmoe.yaml, qwen.yaml
   throughput.
 - **No calibration-based PTQ** (GPTQ, AWQ). The research question is specifically about a
   *calibration-free* structural safeguard. Those belong in related work.
-- **`decompose.py` is not written yet.** It is Part 2, and it only gets built if the
-  decision gate says Part 1 came out null. The activations it needs are already being
-  captured.
+- **No per-window perplexity interval.** `evaluate_lm` accumulates a scalar `total_nll`, so
+  perplexity is a point estimate over all scored tokens with no interval recoverable
+  offline. The decision gate deliberately excludes it and rests on the routing metrics,
+  which do carry sequence-level bootstrap intervals.

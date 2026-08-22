@@ -32,7 +32,9 @@ from moequant.attribution import (  # noqa: E402
 LABELS = {
     "weights_only": "router weights only",
     "activations_only": "upstream activations only",
-    "both": "both (= uniform)",
+    # Not the `uniform` run: cell D uses the `mixed` run's activations, so it omits the
+    # feedback of changed routing on later layers' hidden states.
+    "both": "both (uniform without routing feedback)",
 }
 COLORS = {
     "weights_only": "#C44E52",
@@ -141,10 +143,14 @@ def markdown(model: str, by_bits: dict[int, dict], checks: dict[int, dict]) -> l
         "Routing drift split into the router's own rounded weights and the drift in the "
         "hidden states arriving at the router, rebuilt offline from the captured inputs.",
         "",
-        "| Bits | Weights only | Activations only | Both (uniform) | Weight share of both | "
-        "Weight share of mechanisms |",
-        "|------|--------------|------------------|----------------|----------------------|"
-        "----------------------------|",
+        "Cell D (`both`) is **not** the `uniform` run: it pairs quantized router weights "
+        "with the `mixed` run's activations, so it omits the feedback of changed routing "
+        "on later layers' hidden states. The cross-check at the bottom measures that gap.",
+        "",
+        "| Bits | Weights only | Activations only | Both (no routing feedback) "
+        "| Weight share of both | Weight share of mechanisms |",
+        "|------|--------------|------------------|---------------------------"
+        "|----------------------|----------------------------|",
     ]
     for bits in sorted(by_bits, reverse=True):
         report = by_bits[bits]
@@ -163,8 +169,8 @@ def markdown(model: str, by_bits: dict[int, dict], checks: dict[int, dict]) -> l
         )
 
     lines += ["", "## Routing KL by mechanism", "",
-              "| Bits | Weights only | Activations only | Both (uniform) |",
-              "|------|--------------|------------------|----------------|"]
+              "| Bits | Weights only | Activations only | Both (no routing feedback) |",
+              "|------|--------------|------------------|---------------------------|"]
     for bits in sorted(by_bits, reverse=True):
         pooled = by_bits[bits]["pooled"]
         lines.append(
@@ -186,22 +192,33 @@ def markdown(model: str, by_bits: dict[int, dict], checks: dict[int, dict]) -> l
             f"({'passed' if check['passed'] else 'FAILED'})"
         )
 
-    interaction = {bits: by_bits[bits]["shares"]["interaction"]["mean"] for bits in by_bits}
+    interaction = {bits: by_bits[bits]["shares"]["interaction"] for bits in by_bits}
     lines += [
         "",
         "## Reading these numbers",
         "",
-        "The two mechanisms are not additive, so the shares of `both` do not sum to 100%. "
-        "A negative residual means the mechanisms flip overlapping sets of tokens: a token "
-        "that either source alone would have flipped is counted once in `both` but twice "
-        "across the two single-mechanism cells. The residual is reported rather than "
-        "folded into a share: "
-        + ", ".join(f"INT{b} {v * 100:+.1f}%" for b, v in sorted(interaction.items(), reverse=True))
+        "The two mechanisms are not additive, so the shares of `both` do not sum to 100% "
+        "and **must not be quoted as a partition** of the form \"X% router weights, "
+        "(100-X)% activation drift\". A negative residual means the mechanisms flip "
+        "overlapping sets of tokens: a token that either source alone would have flipped is "
+        "counted once in `both` but twice across the two single-mechanism cells. The "
+        "residual is reported with its own interval rather than folded into a share: "
+        + ", ".join(
+            f"INT{b} {v['mean'] * 100:+.1f}% [{v['ci_low'] * 100:+.1f}, "
+            f"{v['ci_high'] * 100:+.1f}]"
+            for b, v in sorted(interaction.items(), reverse=True)
+        )
         + ".",
         "",
         "The last column is the interpretable one: of the routing flips caused by exactly "
         "one mechanism, what fraction comes from the router's own weights. Above 50% means "
-        "router protection addresses the dominant source at that precision.",
+        "router protection addresses the dominant source at that precision. This is the "
+        "quantity the paper should quote, because it is a share of a well-defined set.",
+        "",
+        "Every cell also carries a reconstruction-noise floor: cell A is rebuilt from "
+        "fp16-stored activations in CPU fp32 against a bf16 GPU forward pass, so the "
+        "agreement reported above is the ceiling on how exactly any cell can reproduce the "
+        "run. All the differences reported here are well clear of it.",
         "",
     ]
     return lines
