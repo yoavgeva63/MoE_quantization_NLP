@@ -6,6 +6,7 @@ artifacts it writes.
 
     python scripts/run.py --config configs/olmoe.yaml --policies gold uniform mixed --bits 4
     python scripts/run.py --config configs/olmoe.yaml --policies uniform mixed --bits 8 4 3
+    python scripts/run.py --config configs/olmoe_c4.yaml --policies gold uniform mixed --bits 4
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import sys
 import traceback
 
 from moequant.config import ExperimentConfig
+from moequant.data import CORPORA
 from moequant.quantize import POLICIES, SUPPORTED_BITS
 from moequant.runner import METRICS, run
 
@@ -40,6 +42,21 @@ def main() -> int:
     parser.add_argument("--routing-sequences", type=int, default=None)
     parser.add_argument("--max-ppl-windows", type=int, default=None)
     parser.add_argument(
+        "--corpus",
+        default=None,
+        choices=sorted(CORPORA),
+        help=(
+            "Evaluation corpus. Changing this also needs a different --results-dir: run "
+            "directories are keyed by model and policy, not by corpus."
+        ),
+    )
+    parser.add_argument(
+        "--max-documents",
+        type=int,
+        default=None,
+        help="Truncate the corpus to this many documents before tokenizing.",
+    )
+    parser.add_argument(
         "--keep-going",
         action="store_true",
         help="Continue the sweep after a failure instead of stopping",
@@ -63,6 +80,8 @@ def main() -> int:
         "seed": args.seed,
         "routing_sequences": args.routing_sequences,
         "max_ppl_windows": args.max_ppl_windows,
+        "corpus": args.corpus,
+        "max_documents": args.max_documents,
     }
 
     # Gold is bit-width independent and must exist before anything is compared to it.

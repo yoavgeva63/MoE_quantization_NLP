@@ -88,20 +88,20 @@ Two structural notes:
 - The page limit is 8 pages excluding references and appendix. `Limitations` is an
   unnumbered starred section per ACL convention; the course guidelines do not exempt it,
   so budget it inside the 8 pages.
-- **The page budget, measured.** With the `\todo` blocks rendering, the document is 17
-  pages. The notes are far longer than the prose they stand in for, so that number says
-  nothing about the real budget — it grows every time a note is added, and has already gone
-  16 → 17 that way. Suppress them and the whole document is **8 pages: body ~2.9,
-  references ~0.4, appendix ~4.7**:
+- **The page budget, measured.** There are three drafting macros — `\todo` (unwritten
+  prose), `\note` (cautions to ourselves) and `\purpose` (a red one-line statement of each
+  paragraph's job, for reviewing the argument). All three are review aids, all three are
+  longer than what they annotate, and none of them counts against the limit. The annotated
+  build therefore says nothing about the budget; stub all three and measure that instead:
 
 ```bash
-sed 's|^\\long\\def\\todo#1{.*$|\\long\\def\\todo#1{}|; s|^\\long\\def\\note#1{.*$|\\long\\def\\note#1{}|' \
+sed 's|^\\long\\def\\todo#1{.*$|\\long\\def\\todo#1{}|; s|^\\long\\def\\note#1{.*$|\\long\\def\\note#1{}|; s|^\\long\\def\\purpose#1{.*$|\\long\\def\\purpose#1{}|' \
     main.tex > _b.tex && latexmk -pdf _b.tex && pdfinfo _b.pdf | grep Pages
 ```
 
-  So every table, figure, caption and factual sentence currently in the paper occupies
-  under 3 body pages, leaving roughly 5 body pages for prose. Re-measure this way after
-  large edits; do not read the budget off the noted build.
+  What matters is the page on which `\bibliography` starts: that is the end of the body,
+  and it must be page 8 or earlier. Re-measure after any large edit, and before submission
+  replace all three definitions with stubs (or delete the macros outright).
 
 ## Figures
 

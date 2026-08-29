@@ -1,0 +1,32 @@
+# OLMoE-1B-7B on C4: the second-corpus check for the router-protection result.
+#
+# Identical to configs/olmoe.yaml except for the corpus and where results land. The
+# routing subset shape and seed are deliberately unchanged, so a difference between the
+# two sweeps is a corpus effect and not a protocol change.
+
+model_key: olmoe
+dtype: bfloat16
+device: cuda
+
+corpus: c4
+max_documents: 1000     # one validation shard is ~45k documents; 1000 gives ~482k tokens
+ppl_seq_len: 1024
+ppl_stride: 1024        # non-overlapping windows; every token scored exactly once
+# No window cap. Capping perplexity would score only the first stretch of the stream while
+# the routing subset is still drawn from all of it, so the two metrics would no longer
+# cover the same tokens - which they do on WikiText-2.
+max_ppl_windows: null
+
+routing_sequences: 128
+routing_seq_len: 256    # 32768 routing decisions per layer
+
+capture_inputs: true
+input_stride: 8         # keep every 8th token's activations for the Part 2 decomposition
+
+seed: 42
+n_boot: 200
+
+# Keyed by corpus. Run directories are results_dir/model/run, with no corpus component,
+# so sharing a root with the WikiText-2 sweep would overwrite it - including its gold
+# artifacts. runner._check_results_corpus refuses to start if that is attempted.
+results_dir: results/c4

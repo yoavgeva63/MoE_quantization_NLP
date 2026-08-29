@@ -239,6 +239,50 @@ python scripts/verify_offline.py   --results-dir results/olmoe
 They read the `.pt` artifacts with `mmap=True`; on shared storage the largest is ~400 MB and
 a full pass over one model takes under two minutes.
 
+## Step 6 (optional): the second corpus
+
+Everything above evaluates WikiText-2. `configs/{olmoe,qwen}_c4.yaml` repeat the sweep on
+C4 at INT4 only — the bit-width where router protection helps most and where the
+attribution crossover sits — which is enough to show the effect is not a property of one
+corpus.
+
+Download the shard first, from a node with network access:
+
+```bash
+python -c "
+from datasets import load_dataset
+from moequant.data import CORPORA
+cfg = dict(CORPORA['c4']); cfg.pop('field')
+print(len(load_dataset(**cfg)), 'documents cached')
+"
+```
+
+Then submit, exactly as in Step 2:
+
+```bash
+sbatch scripts/slurm/run_c4_olmoe.sh
+sbatch scripts/slurm/run_c4_qwen.sh
+```
+
+Two things differ from the WikiText-2 configs, and both matter. `max_documents: 1000`
+truncates the corpus before tokenizing: one C4 validation shard is ~45k documents, which
+would otherwise produce a single several-hundred-megabyte string to tokenize and a token
+stream far longer than the sweep needs. And `results_dir: results/c4` keeps the two
+corpora in separate trees, because run directories are keyed by model and policy with no
+corpus component. Pointing a C4 run at `results/` would overwrite the WikiText-2 sweep
+including its gold artifacts, so `runner._check_results_corpus` refuses to start.
+
+Everything downstream is corpus-agnostic and takes the deeper path:
+
+```bash
+python scripts/analyze.py        --results-dir results/c4/olmoe
+python scripts/attribute.py      --results-dir results/c4/olmoe --bits 4
+python scripts/verify_offline.py --results-dir results/c4/olmoe --model-key olmoe
+```
+
+`--model-key` is optional, since `results/c4/olmoe` still ends in the registry key, but
+passing it keeps the command correct if the tree is ever renamed.
+
 ## Output layout
 
 ```text

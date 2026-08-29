@@ -28,6 +28,26 @@ COLORS = {
     "attention": "#CCB974",
 }
 
+CORPUS_LABELS = {"wikitext2": "WikiText-2", "c4": "C4"}
+
+
+def corpus_label(runs: list[dict]) -> str:
+    """Which corpus these runs were scored on, for the perplexity axis.
+
+    Hard-coding WikiText-2 here silently mislabels every figure from a second-corpus
+    sweep, and a mislabelled axis is the kind of thing that survives all the way into a
+    paper.
+    """
+    corpora = {
+        run.get("dataset", {}).get("corpus")
+        for run in runs
+        if run.get("dataset", {}).get("corpus")
+    }
+    if len(corpora) != 1:
+        return "Perplexity"
+    corpus = corpora.pop()
+    return f"{CORPUS_LABELS.get(corpus, corpus)} perplexity"
+
 
 def load_runs(results_dir: Path) -> list[dict]:
     runs = []
@@ -288,7 +308,7 @@ def main() -> None:
     out_md = Path(args.out_md) if args.out_md else results_dir / "summary.md"
 
     with PdfPages(out_pdf) as pdf:
-        plot_metric(runs, lambda r: r["lm"]["perplexity"], "WikiText-2 perplexity",
+        plot_metric(runs, lambda r: r["lm"]["perplexity"], corpus_label(runs),
                     "Perplexity vs expert precision", pdf)
         plot_metric(runs, lambda r: r["routing"]["pooled"]["kl"], "KL(gold || candidate)",
                     "Routing drift vs expert precision", pdf, logy=True, show_gold=False)

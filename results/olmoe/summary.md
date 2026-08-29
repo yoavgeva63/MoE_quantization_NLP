@@ -8,6 +8,7 @@
 | uniform | INT8 | 9.3941 | 0.008535 | 18.01% | 0.1445 | 0.9977 |
 | mixed | INT8 | 9.3234 | 0.006356 | 13.76% | 0.1277 | 0.9976 |
 | placebo | INT8 | 9.3941 | 0.008535 | 18.01% | 0.1445 | 0.9977 |
+| attention | INT8 | 8.9508 | 0.005402 | 14.55% | 0.1053 | 0.9976 |
 | uniform | INT4 | 10.4946 | 0.028579 | 33.01% | 0.2362 | 0.9976 |
 | mixed | INT4 | 9.6938 | 0.009005 | 16.86% | 0.1494 | 0.9976 |
 | placebo | INT4 | 10.4946 | 0.028579 | 33.01% | 0.2362 | 0.9976 |
@@ -35,6 +36,7 @@
 
 - **attention INT3**: 3088 modules quantized, 16/16 routers quantized, bit-width check passed
 - **attention INT4**: 3088 modules quantized, 16/16 routers quantized, bit-width check passed
+- **attention INT8**: 3088 modules quantized, 16/16 routers quantized, bit-width check passed
 - **gold BF16**: 0 modules quantized, 0/16 routers quantized, bit-width check passed
   - gold self-comparison: KL=0.00e+00, top-1 error=0.00e+00 (passed)
 - **mixed INT3**: 3136 modules quantized, 0/16 routers quantized, bit-width check passed

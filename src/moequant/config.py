@@ -23,6 +23,9 @@ class ExperimentConfig:
     device: str = "cuda"
 
     corpus: str = "wikitext2"
+    # Documents to keep from the corpus before tokenizing. None means all of it, which is
+    # right for WikiText-2 and unusable for a C4 shard. See data.load_token_stream.
+    max_documents: int | None = None
     ppl_seq_len: int = 1024
     ppl_stride: int | None = None
     max_ppl_windows: int | None = None

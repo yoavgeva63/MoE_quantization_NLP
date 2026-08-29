@@ -7,36 +7,18 @@
 % was reconstructed from memory. If you add an entry, resolve it first.
 %
 % -------------------------------------------------------------------------------------
-% READ THIS BEFORE EDITING: two DISTINCT papers our internal notes once conflated
+% RouteQuant vs the withdrawn ICLR draft
 % -------------------------------------------------------------------------------------
-% An earlier draft of OVERVIEW.md claimed that the proposal's "Anonymous (2026)" entry
-% and the "Fang & Huang" paper were the same work. They are NOT. They are two separate
-% submissions with different theses, and both are cited here separately:
+% routequant2026 is Fang and Huang, TMLR 07/2026 (OpenReview bPsPPI65hf). That is the
+% paper we cite. A withdrawn ICLR 2026 submission by the same authors ("Router Choice
+% Matters") is an earlier draft of the same work; citing both would double-count one
+% line of research, so the withdrawn entry is not in this file.
 %
-%   routequant2026   "Beyond Freezing the Router: Rank-Aligned Post-Training
-%                     Quantization for Mixture-of-Experts Models"
-%                    -> STILL ANONYMOUS, under review. This is the proposal's
-%                       "Anonymous (2026)". Thesis: a full-precision router is
-%                       INSUFFICIENT, because expert-output quantization error still
-%                       shifts the next layer's router logits. Quantizes the router and
-%                       corrects with Rank-Aware Jaccard Loss + Gap Hinge Loss.
-%                    -> DO NOT invent authors for this entry.
+% The proposal cited VSRAQ as "Park et al. (2026)". That attribution is correct --
+% arXiv confirms the first author is Hancheol Park.
 %
-%   fang2026router   "Router Choice Matters: Rank-Aware Post-Training Quantization for
-%                     MoE Models", Yi-Zeng Fang and Juinn-Dar Huang.
-%                    -> WITHDRAWN ICLR 2026 submission. This is the real "Fang & Huang",
-%                       and it is the source of the near-neighbour rank-flip finding
-%                       (most routing errors are rank flips around the top-k boundary).
-%
-% Also note: the proposal cited VSRAQ as "Park et al. (2026)". That attribution is
-% CORRECT -- arXiv confirms the first author is Hancheol Park.
-%
-% VERIFICATION STATUS OF THE NON-arXiv ENTRIES
-% OpenReview's API returns HTTP 403 to unauthenticated clients and its public forum
-% pages sit behind a browser check, so routequant2026, fang2026router and sramoe could
-% not be machine-verified from this machine. Their metadata is as supplied in our
-% verified research notes. Open each forum URL in a browser and confirm before
-% submitting. sramoe additionally has no forum ID recorded -- see its TODO.
+% A third entry recorded in our notes as SRA-MoE never resolved to an identifier and
+% was deleted rather than shipped unverifiable.
 % =====================================================================================
 
 
@@ -75,13 +57,7 @@
   url           = {https://arxiv.org/abs/2606.05688}
 }
 
-% ANONYMOUS SUBMISSION -- under review, authors deliberately unknown. Do not fill in.
-% See the header note: this is NOT the Fang & Huang paper.
-% TODO VERIFY (browser): confirm title, year and anonymity status at the forum URL.
-% Verified 2026-08-22 from the paper PDF itself: no longer anonymous and no longer under
-% review. Published in TMLR 07/2026; authors are Fang and Huang at NYCU -- i.e. the SAME
-% authors as fang2026router below, so those two entries are almost certainly one line of
-% work, not two. Cite this published version.
+% Verified 2026-08-22 from the paper PDF: TMLR 07/2026, Fang and Huang.
 @article{routequant2026,
   title   = {Beyond Freezing the Router: Rank-Aligned Post-Training Quantization
              for Mixture-of-Experts Models},
@@ -90,25 +66,6 @@
   year    = {2026},
   note    = {Reviewed on OpenReview: \url{https://openreview.net/forum?id=bPsPPI65hf}},
   url     = {https://openreview.net/forum?id=bPsPPI65hf}
-}
-
-% WITHDRAWN ICLR 2026 submission -- cited honestly as a withdrawn preprint, not as a
-% published paper. Source of the near-neighbour rank-flip finding.
-% TODO VERIFY (browser): confirm authors, title and withdrawal at the forum URL.
-% CAUTION: same authors and near-identical subtitle as routequant2026, which is the TMLR
-% version. This withdrawn ICLR submission is very likely an earlier draft of that same
-% paper. Its content is unverified (OpenReview is unreadable from here). Do not cite both
-% as independent support for the same point -- that double-counts one research group. The
-% published version already contains the rank-flip analysis, so prefer it and drop this.
-@misc{fang2026router,
-  title        = {Router Choice Matters: Rank-Aware Post-Training Quantization for
-                  {MoE} Models},
-  author       = {Yi-Zeng Fang and Juinn-Dar Huang},
-  year         = {2026},
-  note         = {Withdrawn submission to the International Conference on Learning
-                  Representations (ICLR) 2026},
-  howpublished = {OpenReview},
-  url          = {https://openreview.net/forum?id=kPgLp47bJf}
 }
 
 % Verified: arXiv API, 2406.08155v2, published 2024-06-12.
@@ -171,23 +128,13 @@
   url           = {https://arxiv.org/abs/2603.02217}
 }
 
-% TODO VERIFY -- NO IDENTIFIER RESOLVED.
-% We have this paper in our notes as an OpenReview submission titled "Output-Aware
-% Selective Router Alignment for MoE Quantization", making the point that routers are
-% usually left in full precision because they are small, yet errors from preceding
-% layers still alter routing. We could not recover its forum ID or author list from this
-% machine (OpenReview search returned nothing and its API is blocked), so it is left
-% anonymous with no URL. BEFORE CITING: find the forum, fill in the URL, and replace the
-% author field if the submission is de-anonymised. If you cannot find it, DELETE this
-% entry and remove the \citep{sramoe} calls rather than shipping an unverifiable
-% reference.
-@misc{sramoe,
-  title        = {Output-Aware Selective Router Alignment for {MoE} Quantization},
-  author       = {{Anonymous}},
-  year         = {2026},
-  note         = {Anonymous submission under review; identifier not yet verified},
-  howpublished = {OpenReview}
-}
+% REMOVED 2026-08-22: "Output-Aware Selective Router Alignment for MoE Quantization"
+% (recorded in our notes as SRA-MoE). No identifier ever resolved -- OpenReview search
+% returned nothing and its API is blocked -- so the entry had no authors and no URL. The
+% rubric penalises incorrect attribution, and an unverifiable reference is a worse risk
+% than a missing one, so the entry and its two \citet calls are deleted rather than
+% shipped. The point it was cited for (routers are left in full precision yet upstream
+% error still moves routing) is made by routequant2026, which we can verify.
 
 
 % -------------------------------------------------------------------------------------

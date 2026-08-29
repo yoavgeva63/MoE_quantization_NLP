@@ -16,12 +16,14 @@ import torch
 CORPORA = {
     "wikitext2": dict(path="wikitext", name="wikitext-2-raw-v1", split="test", field="text"),
     # No `name` here on purpose: allenai/c4 rejects a config name alongside an explicit
-    # data_files shard, and one validation shard is plenty for this evaluation.
+    # data_files shard, and one validation shard is plenty for this evaluation. The shard
+    # has to be keyed by split name rather than given as a bare string: a bare string is
+    # assigned to `train`, and the `split="validation"` below would then not resolve.
     "c4": dict(
         path="allenai/c4",
         split="validation",
         field="text",
-        data_files="en/c4-validation.00000-of-00008.json.gz",
+        data_files={"validation": "en/c4-validation.00000-of-00008.json.gz"},
     ),
 }
 
@@ -68,7 +70,14 @@ def load_token_stream(
     max_documents: int | None = None,
     cache_dir: str | None = None,
 ) -> torch.Tensor:
-    """Tokenize a corpus into one flat 1-D tensor of token ids."""
+    """Tokenize a corpus into one flat 1-D tensor of token ids.
+
+    ``max_documents`` is not a convenience knob for the larger corpora, it is what makes
+    them usable at all. One C4 validation shard is roughly 45k documents; joining all of
+    them produces a single several-hundred-megabyte string to tokenize and a token stream
+    two orders of magnitude longer than the perplexity sweep needs. The truncation happens
+    before the text column is materialised, so the full shard is never held in memory.
+    """
     from datasets import load_dataset
 
     if corpus not in CORPORA:
@@ -77,9 +86,9 @@ def load_token_stream(
     field = cfg.pop("field")
 
     dataset = load_dataset(**cfg, cache_dir=cache_dir)
-    texts = dataset[field]
     if max_documents is not None:
-        texts = texts[:max_documents]
+        dataset = dataset.select(range(min(max_documents, len(dataset))))
+    texts = dataset[field]
 
     joined = "\n\n".join(texts)
     encoded = tokenizer(joined, return_tensors="pt")

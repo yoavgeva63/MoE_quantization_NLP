@@ -212,8 +212,34 @@ def _check_alignment(gold: dict, routing, topology: dict, cfg: ExperimentConfig)
             )
 
 
+def _check_results_corpus(cfg: ExperimentConfig) -> None:
+    """Refuse to write into a results tree that was built from a different corpus.
+
+    ``run_dir`` is keyed by model and policy but not by corpus, so pointing a second
+    corpus at the same ``results_dir`` silently overwrites the first - including the gold
+    artifacts every published number was scored against. ``_check_alignment`` catches a
+    mismatched *comparison*; nothing caught a mismatched *write*, and by the time the
+    fingerprint gate fires on the next candidate the gold run is already gone.
+    """
+    model_dir = Path(cfg.results_dir) / cfg.model_key
+    for path in sorted(model_dir.glob(f"*/{METRICS}")):
+        try:
+            with path.open() as handle:
+                existing = json.load(handle).get("dataset", {}).get("corpus")
+        except (OSError, ValueError):
+            continue  # unreadable or partial; not evidence of a corpus clash
+        if existing is not None and existing != cfg.corpus:
+            raise ValueError(
+                f"{model_dir} already holds {existing!r} results ({path.name} in "
+                f"{path.parent.name}), but this run uses {cfg.corpus!r}. Writing here "
+                f"would overwrite them. Point results_dir somewhere else, e.g. "
+                f"results/{cfg.corpus}."
+            )
+
+
 def run(cfg: ExperimentConfig, progress: bool = True) -> dict:
     device = _resolve_device(cfg.device)
+    _check_results_corpus(cfg)
     spec = get_spec(cfg.model_key)
     torch.manual_seed(cfg.seed)
 
@@ -267,7 +293,9 @@ def run(cfg: ExperimentConfig, progress: bool = True) -> dict:
     )
 
     # -- data ------------------------------------------------------------------------
-    tokens = load_token_stream(tokenizer, cfg.corpus, cache_dir=cfg.cache_dir)
+    tokens = load_token_stream(
+        tokenizer, cfg.corpus, max_documents=cfg.max_documents, cache_dir=cfg.cache_dir
+    )
     ppl = ppl_batches(tokens, cfg.ppl_seq_len, cfg.ppl_stride, cfg.max_ppl_windows)
     routing = routing_batches(tokens, cfg.routing_sequences, cfg.routing_seq_len, cfg.seed)
 

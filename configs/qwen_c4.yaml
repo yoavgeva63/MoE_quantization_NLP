@@ -1,0 +1,25 @@
+# Qwen1.5-MoE-A2.7B on C4: the second-corpus check on the second architecture.
+#
+# Identical to configs/qwen.yaml except for the corpus and where results land. See
+# configs/olmoe_c4.yaml for why results_dir is keyed by corpus.
+
+model_key: qwen
+dtype: bfloat16
+device: cuda
+
+corpus: c4
+max_documents: 1000
+ppl_seq_len: 1024
+ppl_stride: 1024
+max_ppl_windows: null    # see configs/olmoe_c4.yaml
+
+routing_sequences: 128
+routing_seq_len: 256
+
+capture_inputs: true
+input_stride: 8
+
+seed: 42
+n_boot: 200
+
+results_dir: results/c4
