@@ -1,4 +1,4 @@
-# Does Protecting the Router in Quantized MoE Improve Accuracy, and How?
+# Does Protecting the Router in Quantized MoE Improve Quality, and How?
 
 A Mixture-of-Experts layer routes each token through a small linear **router** and then
 through a handful of **experts**. The experts are almost the whole model; the routers are

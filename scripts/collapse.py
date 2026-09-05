@@ -358,6 +358,15 @@ def verdict(model: str, tier1: dict[str, dict], tier2: dict[str, dict]) -> list[
 
 # -- figures ----------------------------------------------------------------------------
 
+# Figures are drawn at the width they are printed (one ACL column, 3.03 in), so the 8 pt
+# fonts below land at 8 pt on the page instead of being scaled down with the figure.
+FIG_RC = {
+    "font.size": 8, "axes.titlesize": 8.5, "axes.labelsize": 8,
+    "xtick.labelsize": 8, "ytick.labelsize": 8, "legend.fontsize": 7.5,
+    "lines.linewidth": 1.2, "lines.markersize": 3, "axes.linewidth": 0.6,
+}
+FIGSIZE = (3.03, 2.3)
+
 
 def plot_dead_by_layer(tier1: dict[str, dict], pdf: PdfPages, model: str) -> None:
     bit_widths = sorted({r["bits"] for r in tier1.values() if r["bits"] is not None}, reverse=True)
@@ -367,7 +376,7 @@ def plot_dead_by_layer(tier1: dict[str, dict], pdf: PdfPages, model: str) -> Non
         }
         if len(selected) < 2:
             continue
-        fig, ax = plt.subplots(figsize=(7, 4))
+        fig, ax = plt.subplots(figsize=FIGSIZE)
         for policy, report in sorted(selected.items(), key=lambda kv: POLICY_ORDER.get(kv[0], 9)):
             rows = report["per_layer"]
             ax.plot(
@@ -376,9 +385,12 @@ def plot_dead_by_layer(tier1: dict[str, dict], pdf: PdfPages, model: str) -> Non
                 marker="o", label=report["label"], color=COLORS.get(policy),
             )
         ax.set_xlabel("Layer")
-        ax.set_ylabel("Experts below a tenth of fair share")
+        ax.set_ylabel("Starved experts")  # under a tenth of fair share; caption defines it
         ax.set_title(f"{model}: starved experts by layer at INT{bits}")
-        ax.legend()
+        # Headroom for a legend inside the axes, so it never sits on the curves.
+        ax.set_ylim(top=max(ax.get_ylim()[1] * 1.65, 1))
+        ax.legend(loc="upper center", ncol=2, frameon=False, columnspacing=1.2,
+                  handlelength=1.6)
         ax.grid(alpha=0.3)
         fig.tight_layout()
         pdf.savefig(fig)
@@ -391,7 +403,7 @@ def plot_entropy_by_layer(tier1: dict[str, dict], pdf: PdfPages, model: str) -> 
         selected = {r["policy"]: r for r in tier1.values() if r["bits"] in (bits, None)}
         if len(selected) < 2:
             continue
-        fig, ax = plt.subplots(figsize=(7, 4))
+        fig, ax = plt.subplots(figsize=FIGSIZE)
         for policy, report in sorted(selected.items(), key=lambda kv: POLICY_ORDER.get(kv[0], 9)):
             rows = report["per_layer"]
             ax.plot(
@@ -412,7 +424,7 @@ def plot_entropy_by_layer(tier1: dict[str, dict], pdf: PdfPages, model: str) -> 
 def plot_gini(tier2: dict[str, dict], pdf: PdfPages, model: str) -> None:
     if not tier2:
         return
-    fig, ax = plt.subplots(figsize=(6.5, 4))
+    fig, ax = plt.subplots(figsize=FIGSIZE)
     bit_widths = sorted({r["bits"] for r in tier2.values() if r["bits"] is not None}, reverse=True)
     position = {b: i for i, b in enumerate(bit_widths)}
     plotted = False
@@ -425,7 +437,7 @@ def plot_gini(tier2: dict[str, dict], pdf: PdfPages, model: str) -> None:
         if not points:
             continue
         points.sort()
-        ax.plot(*zip(*points), marker="o", label=policy, color=COLORS.get(policy), linewidth=2)
+        ax.plot(*zip(*points), marker="o", label=policy, color=COLORS.get(policy))
         plotted = True
     if not plotted:
         plt.close(fig)
@@ -510,7 +522,7 @@ def main() -> None:
     ))
 
     out_pdf = results_dir / f"{args.out_prefix}.pdf"
-    with PdfPages(out_pdf) as pdf:
+    with PdfPages(out_pdf) as pdf, plt.rc_context(FIG_RC):
         plot_dead_by_layer(tier1, pdf, model)
         plot_entropy_by_layer(tier1, pdf, model)
         plot_gini(tier2, pdf, model)
