@@ -412,9 +412,10 @@ stay finite and ordered, and we make perplexity claims at INT8 and INT4.
 \paragraph{A second corpus reproduces the INT4 result.}
 To test whether the routing effect is a property of WikiText-2, we re-ran
 the INT4 cell on both models on C4 \citep{raffel2020t5}, holding seed,
-routing-subset shape and gates fixed. The ordering repeats on both
-architectures, including the attribution share
-(Appendix~\ref{sec:appendix-c4}). INT8 and INT3 were not repeated. 
+routing-subset shape and gates fixed. The ordering repeats, including the
+attribution share: OLMoE routing KL $0.0273 \to 0.0083$,
+$B/(B{+}C)$ $63.0\%$ (WikiText-2 $62.2\%$); Qwen $0.0737 \to 0.0272$,
+$60.2\%$ ($58.0\%$). INT8 and INT3 were not repeated. 
 
 \section{Attribution Analysis}
 \label{sec:attribution}
@@ -535,8 +536,8 @@ her desk is already wrong. Spending more precision on attention as well
 is a separate, larger tradeoff, in addition, not instead.
 
 \section*{AI Disclosure and Reflection}
-As in earlier work for this course, we used AI assistants as a third
-partner, with us as the orchestrators throughout: every step was
+We used AI assistants as additional
+partners, with us as the orchestrators throughout: every step was
 specified, reviewed and accepted by us. Gemini supported the literature
 search and the brainstorming that narrowed our proposal to the
 calibration-free, weight-only version of the router question; we went through every cited paper ourselves. Once the design was fixed we moved to
@@ -548,7 +549,7 @@ support. Every number in every table was transcribed from the run
 artifacts and checked against the corresponding JSON. The research
 question, the experimental matrix, the decision to treat the four-cell
 rebuild as a mechanism analysis rather than a fallback, the controls,
-and the interpretation are ours; the tools assisted, they did not
+and the interpretation are ours. The tools assisted, they did not
 decide.
 
 On reflection, the assistance was most useful where the work was
@@ -569,7 +570,6 @@ hypothesis to check rather than a result to keep.
 \section{Experimental setup}
 \label{sec:appendix-setup}
 
-\paragraph{Models.}
 Table~\ref{tab:params} records the two checkpoints. Both expose the router
 as \texttt{nn.Linear} named \texttt{mlp.gate}. We pin
 \texttt{transformers} to $4.x$ so experts remain individual linear modules
@@ -590,142 +590,19 @@ Router params & $2.10$M & $2.95$M \\
 Router share & $0.0303\%$ & $0.0206\%$ \\
 \bottomrule
 \end{tabular}
-\caption{Architectures, from \texttt{inspect\_model.py}.
+\caption{Architectures.
   Checkpoints: \texttt{OLMoE-1B-7B-0924}
   \citep{muennighoff2024olmoe} and \texttt{Qwen1.5-MoE-A2.7B}
   \citep{qwen2024moe,qwen2023technical}.}
 \label{tab:params}
 \end{table}
 
-\paragraph{Data and protocol.}
 WikiText-2 raw test, documents joined with a blank line and tokenized as
-one stream. There is no train/test leakage: scales come from the weights,
-never from activations, and no hyperparameter is selected on the
-evaluation tokens. Routing metrics and perplexity share that stream; they
-are not independent confirmations of the same effect. The routing subset
-is \texttt{default\_rng(42).choice} over disjoint $256$-token blocks.
-Router inputs for attribution are stored every eighth token.
-
-\paragraph{Hardware and reproducibility.}
+one stream.
 Runs used NVIDIA GeForce RTX 2080 Ti cards (compute $7.5$), three for
 OLMoE and five for Qwen, with \texttt{torch} $2.9.1$,
 \texttt{transformers} $4.57.6$ and \texttt{torchao} $0.17.0$
-\citep{or2025torchao,wolf2020transformers}. Every results file records
-the git commit, package versions, GPU type and a SHA-256 fingerprint of
-the token ids. A candidate whose corpus, seed or layout disagrees with
-\gold{} is rejected rather than scored.
-
-\paragraph{Deviations from the approved proposal.}
-The proposal named \texttt{Qwen/Qwen2.5-MoE-1.4B-A14B}, which does not
-exist and is internally contradictory. We substituted OLMoE-1B-7B, one of
-the three models EAQuant benchmarks \citep{fu2025eaquant}, and
-Qwen1.5-MoE-A2.7B as a second architecture. We swept INT8/4/3 rather than
-INT8 alone, because INT8 is nearly lossless and would have left the
-comparison inside the noise. The proposal named WikiText-2 and C4; the
-sweep is WikiText-2 and C4 enters as the INT4 check of
-Appendix~\ref{sec:appendix-c4}. Part~2
-was described as a fallback for a null Part~1; Part~1 came out positive
-and we ran the attribution anyway, as a mechanism analysis. The
-proposal's contingency of scaling routing scores by activation size was
-not built.
-
-\section{Correctness gates and offline verification}
-\label{sec:appendix-gates}
-
-Every claim in the paper rests on \mixed{} and \uniform{} differing in the
-routers and in nothing else. Rather than trust the quantizer's own
-bookkeeping, we re-derive that from the artifacts each run stored.
-Table~\ref{tab:appendix-gates} counts the modules each policy quantized,
-Table~\ref{tab:appendix-verification} inspects the stored router weights
-channel by channel, and Table~\ref{tab:appendix-placebo} records what the
-\placebo{} draw actually protected.
-
-\begin{table}[t]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lrr}
-\toprule
-Policy & OLMoE & Qwen \\
-\midrule
-\gold{} & $0$ & $0$ \\
-\uniform{} & $3152$ & $4536$ \\
-\mixed{} & $3136$ & $4512$ \\
-\placebo{} & $3151$ & $4535$ \\
-\attn{} & $3088$ & $4440$ \\
-\bottomrule
-\end{tabular}
-\caption{Modules quantized per policy, identical at every bit-width.
-  \mixed{} quantizes exactly $16$ (resp.\ $24$) fewer modules than
-  \uniform{}, and those modules are the routers. \placebo{} spares one
-  extra module. The \attn{} follow-up, listed for completeness, spares
-  $64$ (resp.\ $96$) attention projections and keeps every router
-  quantized. \gold{} self-comparison is exactly zero KL and zero flips
-  on both models.}
-\label{tab:appendix-gates}
-\end{table}
-
-\begin{table}[t]
-\centering
-\footnotesize
-\setlength{\tabcolsep}{3pt}
-\begin{tabular}{llccc}
-\toprule
-Model & Run & Lev. & Cap & $=$~\gold{} \\
-\midrule
-OLMoE & \gold{} / \mixed{} & $1161$ & n/a & $16/16$ \\
-OLMoE & unif./plac.\ INT8 & $60$ & $256$ & $0/16$ \\
-OLMoE & INT4 quantized & $16$ & $16$ & $0/16$ \\
-OLMoE & INT3 quantized & $8$ & $8$ & $0/16$ \\
-Qwen & \gold{} / \mixed{} & $1107$ & n/a & $24/24$ \\
-Qwen & unif./plac.\ INT8 & $46$ & $256$ & $0/24$ \\
-Qwen & INT4 quantized & $16$ & $16$ & $0/24$ \\
-Qwen & INT3 quantized & $8$ & $8$ & $0/24$ \\
-\bottomrule
-\end{tabular}
-\caption{Offline bit-identity check on the dequantized router weights each
-  run stored. \textbf{Levels} is the largest number of distinct values in
-  any output channel; \textbf{Cap} is the ceiling $2^{N}$ that per-channel
-  symmetric INT-$N$ allows, which does not apply to a router left in BF16.
-  INT8 sits far below its cap through occupancy rather than range: the
-  per-channel scale is fixed by that channel's largest weight, and the
-  remaining weights lie well inside the interval that outlier defines, so
-  they land on a narrow band of codes around zero and most of the $256$
-  available codes are never the nearest code to any weight. The emptiest
-  channel uses only $16$ levels on OLMoE and $11$ on Qwen. All listed runs
-  pass. \texttt{scripts/verify\_offline.py}.}
-\label{tab:appendix-verification}
-\end{table}
-
-\begin{table}[t]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{lcc}
-\toprule
- & OLMoE & Qwen \\
-\midrule
-Module & L14 E10 & L19 E45 \\
- & \texttt{down\_proj} & \texttt{down\_proj} \\
-Params vs.\ budget & $1.000\times$ & $0.978\times$ \\
-Tokens on path & $11.43\%$ & $5.04\%$ \\
-Exposure gap & $140\times$ & $477\times$ \\
-\bottomrule
-\end{tabular}
-\caption{What \placebo{} protected at \texttt{placebo\_seed}${=}0$. One
-  expert down-projection per model, re-derived from a meta-device
-  skeleton. The selection rule stops once the accumulated module is
-  within $25\%$ of the router budget; on both checkpoints the first
-  eligible draw already is.}
-\label{tab:appendix-placebo}
-\end{table}
-
-\section{Expert collapse: per-layer detail}
-\label{sec:appendix-collapse}
-
-The counts behind Figure~\ref{fig:collapse}. Pooling expert usage across
-layers cancels per-layer imbalance and reports nothing, so every number
-here is resolved within its own layer and then summed.
+\citep{or2025torchao,wolf2020transformers}.
 
 \begin{table}[t]
 \centering
@@ -749,8 +626,8 @@ Qwen & \attn{} INT3 & $74/1440$ & $0$ & $0.346$ \\
 \caption{Expert collapse, resolved per layer. A slot is starved when an
   expert receives under a tenth of its fair share in its own layer.
   Starved counts use all $32{,}768$ routing tokens; load KL is rebuilt
-  from the strided capture, with \gold{} measured on the same positions.
-  OLMoE does not collapse; Qwen INT3 does, and \mixed{} mitigates it.}
+  from the strided capture. OLMoE does not collapse; Qwen INT3 does, and
+  \mixed{} mitigates it.}
 \label{tab:collapse}
 \end{table}
 
@@ -813,107 +690,5 @@ Qwen & INT3$^{*}$ & $0.4901$ & $0.3147$ & $0.3380$ & $87\%$ \\
   router's own weights. $^{*}$Saturated.}
 \label{tab:appendix-attnkl}
 \end{table}
-
-\section{Attribution: mechanism detail}
-\label{sec:appendix-attribution}
-
-Table~\ref{tab:attribution} scores the four-cell rebuild on top-1 flips.
-Routing KL is the second metric we can score it on, and it is reported here
-to show that the INT8-to-INT4 crossover is not an artifact of thresholding
-a continuous drift at the top-1 index.
-
-\begin{table}[t]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{llccc}
-\toprule
-Model & Bits & B & C & D \\
-\midrule
-OLMoE & INT8 & $0.0018$ & $0.0073$ & $0.0091$ \\
-OLMoE & INT4 & $0.0175$ & $0.0099$ & $0.0272$ \\
-OLMoE & INT3 & $0.0586$ & $0.0393$ & $0.0929$ \\
-Qwen & INT8 & $0.0053$ & $0.0207$ & $0.0260$ \\
-Qwen & INT4 & $0.0444$ & $0.0387$ & $0.0836$ \\
-Qwen & INT3 & $0.1666$ & $0.3145$ & $0.4540$ \\
-\bottomrule
-\end{tabular}
-\caption{Routing KL by mechanism. The INT8-to-INT4 crossover is the same
-  as in Table~\ref{tab:attribution}: B $<$ C at INT8 and B $>$ C at INT4
-  on both models.}
-\label{tab:appendix-kl}
-\end{table}
-
-\section{The C4 check in full}
-\label{sec:appendix-c4}
-
-Table~\ref{tab:appendix-c4} gives the INT4 cell on both corpora. The C4
-runs use \texttt{configs/olmoe\_c4.yaml} and \texttt{configs/qwen\_c4.yaml}:
-same seed, routing-subset shape and gates as WikiText-2. One English
-validation shard yields $481{,}220$ / $469{,}449$ scored tokens against
-$288{,}448$ / $298{,}785$ on WikiText-2. Perplexity is comparable within a
-column, not across columns.
-
-\begin{table}[t]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{llcc}
-\toprule
- & INT4 & WikiText-2 & C4 \\
-\midrule
-\multirow{8}{*}{OLMoE}
- & \gold{} PPL & $8.36$ & $12.29$ \\
- & \uniform{} PPL & $10.49$ & $14.13$ \\
- & \mixed{} PPL & $9.69$ & $13.45$ \\
- & \uniform{} routing KL & $0.0286$ & $0.0273$ \\
- & \mixed{} routing KL & $0.0090$ & $0.0083$ \\
- & \uniform{} top-1 flip & $33.01\%$ & $33.95\%$ \\
- & \mixed{} top-1 flip & $16.86\%$ & $17.00\%$ \\
- & $B/(B{+}C)$ & $62.2\%$ & $63.0\%$ \\
-\midrule
-\multirow{8}{*}{Qwen}
- & \gold{} PPL & $7.97$ & $10.36$ \\
- & \uniform{} PPL & $12.01$ & $16.00$ \\
- & \mixed{} PPL & $11.24$ & $14.85$ \\
- & \uniform{} routing KL & $0.0861$ & $0.0737$ \\
- & \mixed{} routing KL & $0.0355$ & $0.0272$ \\
- & \uniform{} top-1 flip & $30.62\%$ & $30.03\%$ \\
- & \mixed{} top-1 flip & $17.90\%$ & $16.57\%$ \\
- & $B/(B{+}C)$ & $58.0\%$ & $60.2\%$ \\
-\bottomrule
-\end{tabular}
-\caption{The INT4 cell on both corpora. Orderings survive the corpus
-  change. Perplexities are not comparable across columns.}
-\label{tab:appendix-c4}
-\end{table}
-
-\section{Reproduction}
-\label{sec:appendix-repro}
-
-The accompanying repository builds the policies as torchao
-\texttt{FqnToConfig} dictionaries, runs them through a shared evaluation
-loop, and refuses to score a candidate whose token fingerprint, topology
-or router-quantization audit fails. Offline analyses
-(\texttt{scripts/analyze.py}, \texttt{attribute.py},
-\texttt{collapse.py}, \texttt{verify\_offline.py}) read only the stored artifacts and need no
-GPU. The main sweep is:
-
-\begin{verbatim}
-python scripts/run.py \
-  --config configs/olmoe.yaml \
-  --policies gold uniform mixed placebo \
-  --bits 8 4 3
-python scripts/analyze.py \
-  --results-dir results/olmoe
-\end{verbatim}
-
-\noindent Add \texttt{attention} to \texttt{--policies} for the
-follow-up series in Figure~\ref{fig:headline}.
-
-\noindent Substitute \texttt{configs/qwen.yaml} for the second
-architecture. Tests (\texttt{pytest}) cover policy construction, metric
-identities, the four-cell rebuild and the registry collisions that would
-silently protect the wrong module.
 
 \end{document}
