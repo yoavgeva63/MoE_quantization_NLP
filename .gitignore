@@ -34,3 +34,14 @@ paper/*.synctex.gz
 # Editor/tooling caches
 .pytest_cache/
 .ruff_cache/
+
+# others/ holds everything that should not ship with the public repo, for two separate
+# reasons. First, internal working material written for us rather than for a reader
+# arriving from the paper: STATUS.md is a dated catch-up note, and prior_art.md and
+# method_audit.md are candid literature and methodology audits. The paper, README and
+# ARCHITECTURE supersede all three. Second, downloaded reference PDFs and course
+# documents, which are retrievable from their sources and are not ours to redistribute.
+others/
+
+# Agent planning output; scaffolding from the build phase, superseded by the paper.
+*.plan.md

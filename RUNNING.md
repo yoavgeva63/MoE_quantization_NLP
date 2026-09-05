@@ -3,7 +3,7 @@
 ## Quick reference
 
 ```bash
-pytest                                                    # 136 tests, CPU only, ~6s
+pytest                                                    # 188 tests, CPU only, ~6s
 python scripts/inspect_model.py olmoe                     # check the registry, no GPU
 python scripts/run.py --config configs/olmoe.yaml \
     --policies gold uniform mixed --bits 8 4 3            # the Part 1 sweep
@@ -32,7 +32,7 @@ Verify the install:
 pytest -q
 ```
 
-All 136 tests run on CPU with no model downloads. Most of the suite drives a synthetic
+All 188 tests run on CPU with no model downloads. Most of the suite drives a synthetic
 MoE through a stand-in quantizer, but `tests/test_torchao_backend.py` runs the **real**
 torchao path — actual `FqnToConfig` targeting, actual quantized tensor subclasses — and
 is the one that catches a torchao release moving the API out from under us. It skips
@@ -239,12 +239,12 @@ python scripts/verify_offline.py   --results-dir results/olmoe
 They read the `.pt` artifacts with `mmap=True`; on shared storage the largest is ~400 MB and
 a full pass over one model takes under two minutes.
 
-## Step 6 (optional): the second corpus
+## Step 6: the second corpus
 
 Everything above evaluates WikiText-2. `configs/{olmoe,qwen}_c4.yaml` repeat the sweep on
 C4 at INT4 only — the bit-width where router protection helps most and where the
 attribution crossover sits — which is enough to show the effect is not a property of one
-corpus.
+corpus. Both C4 runs are reported in the paper.
 
 Download the shard first, from a node with network access:
 
@@ -327,7 +327,9 @@ Runs abort rather than produce misleading numbers. Each check and what it catche
 | distinct values per channel ≤ `2**bits` | a bit-width silently not applied |
 | config expert count == router weight shape | registry pointing at the wrong module |
 
-All of it lands in `summary.md` under "Correctness gates", ready for the paper appendix.
+All of it lands in `summary.md` under "Correctness gates". The paper states the
+single-variable and bit-identity claims in Section 4 but no longer prints the audit
+tables, so `summary.md` and `results/<model>/verification.md` are the full record.
 
 ## Troubleshooting
 

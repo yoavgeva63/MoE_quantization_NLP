@@ -101,7 +101,7 @@ to $E$ logits. The layer keeps the top-$k$ experts and mixes their outputs
 with a softmax over those $k$ scores:
 \begin{equation}
   y \;=\; \sum_{i\in\mathrm{Top}k(Wx)}
-  \mathrm{softmax}(Wx){i}\,E{i}(x).
+  \mathrm{softmax}(Wx)_{i}\,E_{i}(x).
   \label{eq:moe}
 \end{equation}
 A flip of the top-1 index, or of the top-$k$ set, changes which parameters
@@ -192,8 +192,7 @@ skips the router. Qwen's
 thing on both models. Offline inspection of the stored router weights
 confirms the single-variable claim: every \mixed{} router is bit-identical
 to \gold{} in every layer, and every \uniform{} router sits at the INT-$N$
-level ceiling at INT4 and INT3, and well below it at INT8
-(Appendix~\ref{sec:appendix-gates}).
+level ceiling at INT4 and INT3, and well below it at INT8.
 
 \paragraph{A parameter-count-matched control.}
 \placebo{} is \uniform{} except that one randomly chosen non-router module,
@@ -262,7 +261,8 @@ $\times$ $256$ tokens ($32{,}768$ tokens per layer), with $95\%$
 percentile bootstrap intervals from $200$ sequence-level resamples
 (\texttt{seed}${=}42$). We sweep INT8, INT4 and INT3. There is no
 calibration set. The sweep is WikiText-2 throughout; an INT4 check on C4
-is reported below.
+is reported below. Code, configs and every run artifact behind the tables
+are in Appendix~\ref{sec:appendix-code}.
 
 \paragraph{Router protection helps, on both architectures.}
 Table~\ref{tab:part1} is the main result. \mixed{} beats \uniform{} on
@@ -443,8 +443,8 @@ Of the flips caused by exactly one mechanism, the router's own weights
 account for $43.4\%$ / $40.3\%$ at INT8 (OLMoE / Qwen) and $62.2\%$ /
 $58.0\%$ at INT4 (Table~\ref{tab:attribution}). Above half, router
 protection removes the larger source. That crossover is the same on both
-architectures, and it is the same on routing KL
-(Table~\ref{tab:appendix-kl}). At INT8 the cheap safeguard is fighting
+architectures, and it is the same on routing KL: B $<$ C at INT8 and
+B $>$ C at INT4. At INT8 the cheap safeguard is fighting
 the smaller fire. At INT4 it is fighting the larger one. We do not read
 Qwen INT3 ($45.4\%$) as activation dominance returning: that cell is the
 saturated regime of Section~\ref{sec:results}.
@@ -690,5 +690,10 @@ Qwen & INT3$^{*}$ & $0.4901$ & $0.3147$ & $0.3380$ & $87\%$ \\
   router's own weights. $^{*}$Saturated.}
 \label{tab:appendix-attnkl}
 \end{table}
+
+\section{Code}
+\label{sec:appendix-code}
+Code, configs, and run artifacts are at
+\url{https://github.com/yoavgeva63/MoE_quantization_NLP}.
 
 \end{document}

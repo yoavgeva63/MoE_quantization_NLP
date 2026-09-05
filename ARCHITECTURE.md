@@ -138,9 +138,11 @@ exposed 16 / 0.1143 ≈ **140×** more on OLMoE and 24 / 0.0504 ≈ **477×** mo
 
 So the placebo rules out *"any high-precision parameters help"* — it lands on `uniform` to
 six decimal places on both models — and structurally cannot address *"any high-precision
-island on the every-token, every-layer main path helps"*. The `attention` policy, already
-implemented here and asserted by `verify.py`, is the run with the matching exposure
-profile; it has never been executed.
+island on the every-token, every-layer main path helps"*. The `attention` policy is the run
+with the matching exposure profile, and it has since been executed at all three bit-widths
+on both models. It recovers only part of `mixed`'s routing-KL reduction at INT4 and INT3,
+and more than all of it at INT8 — which is the attribution result of `attribution.py`
+showing up as a policy, since at INT8 the incoming activations are the larger source.
 
 ### `verify.py` — did it actually happen?
 
@@ -184,7 +186,9 @@ The in-pipeline check still inspects at most 8 rows of each sampled module, whic
 smoke test. `scripts/verify_offline.py` is the strong version: it reads the router weights
 saved in every run's artifacts and counts distinct values in **every output channel of
 every router in every layer of every run**, with no GPU. That is what
-`results/<model>/verification.md` records, and it is the statement the paper should cite.
+`results/<model>/verification.md` records. The paper makes the bit-identity claim in
+Section 4 and, for length, does not reproduce the table, so this file is the evidence
+behind it.
 
 ### `capture.py` — hooking the routers
 
@@ -280,7 +284,12 @@ extra result into an apparent inconsistency.
 ### `data.py` and `evaluate.py`
 
 `data.py` is pure functions of (corpus, tokenizer, seed) with no run-to-run state, which
-is what guarantees alignment. `routing_batches` returns both the batches and a `groups`
+is what guarantees alignment. Two corpora are registered, WikiText-2 test and one shard of
+the C4 English validation split; the `_c4` configs differ from their WikiText-2 siblings in
+the corpus and the results directory and in nothing else, so a difference between the two
+sweeps is a corpus effect rather than a protocol change. Run directories are keyed by model
+and policy with no corpus component, so `runner._check_results_corpus` refuses to start a
+C4 run that would overwrite a WikiText-2 tree. `routing_batches` returns both the batches and a `groups`
 array giving the sequence id of every token position, which is what the bootstrap needs.
 
 `evaluate.py` computes perplexity by sliding window, masking overlap out of the loss when
@@ -305,7 +314,7 @@ does not, something upstream is nondeterministic and no other number can be trus
 
 ## Testing
 
-199 tests, no GPU and no downloads, running in about twelve seconds.
+188 tests, no GPU and no downloads, running in about twelve seconds.
 
 `tests/conftest.py` builds a synthetic MoE deliberately shaped like the real ones:
 `model.layers.{i}.mlp.gate` for the router, `mlp.experts.{j}.gate_proj` inside experts,
@@ -331,7 +340,7 @@ src/moequant/
 ├── metrics.py      KL, JS, top-k mismatch, entropy, bootstrap CIs (paired and marginal)
 ├── collapse.py     per-layer expert-load balance, Gini / shares / KL vs uniform
 ├── attribution.py  Part 2 four-cell decomposition (offline, no GPU)
-├── data.py         WikiText-2, seeded routing subsets, PPL windows
+├── data.py         WikiText-2 and C4, seeded routing subsets, PPL windows
 ├── evaluate.py     perplexity + output-distribution drift
 ├── config.py       experiment config and environment capture
 └── runner.py       one (model, policy, bits) run, end to end
@@ -346,8 +355,8 @@ scripts/
 ├── verify_offline.py     router bit-identity and level counts, placebo derivation
 └── slurm/               cluster job scripts
 
-tests/              199 tests, CPU only, ~12s
-configs/            olmoe.yaml, qwen.yaml
+tests/              188 tests, CPU only, ~12s
+configs/            olmoe.yaml, qwen.yaml, olmoe_c4.yaml, qwen_c4.yaml
 ```
 
 Everything under `scripts/` except `run.py` is CPU-only and reads artifacts already on
