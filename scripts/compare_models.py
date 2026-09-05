@@ -86,7 +86,9 @@ def _series(runs: list[dict], policy: str, getter):
     return rows
 
 
-def plot_panel(ax, models: list[dict], getter, ylabel: str, logy: bool = False) -> None:
+def plot_panel(
+    ax, models: list[dict], getter, ylabel: str, logy: bool = False, lw_scale: float = 1.0,
+) -> None:
     all_bits = sorted(
         {run["bits"] for model in models for run in model["runs"] if run.get("bits")},
         reverse=True,
@@ -105,9 +107,9 @@ def plot_panel(ax, models: list[dict], getter, ylabel: str, logy: bool = False) 
                 [row[3] - row[1] for row in rows],
             ]
             ax.errorbar(
-                bits, mean, yerr=yerr, capsize=3,
+                bits, mean, yerr=yerr, capsize=3 * lw_scale,
                 color=style["color"], marker=style["marker"],
-                linewidth=style.get("linewidth", 1.8),
+                linewidth=style.get("linewidth", 1.8) * lw_scale,
                 alpha=style.get("alpha", 1.0),
                 zorder=style.get("zorder", 2),
                 linestyle=MODEL_LINESTYLE.get(model_index, "-"),
@@ -128,24 +130,34 @@ def headline_figure(models: list[dict], out_pdf: Path) -> None:
     The third panel is not decoration. `attention` tracks `uniform` on the two routing
     panels and matches or beats `mixed` on perplexity, so a two-panel figure would show
     only half of the result and would let a reader infer the wrong ordering for the half it
-    omits. The base font size is raised because the figure is reduced to \\textwidth.
+    omits. The figure is drawn at the width it is printed (\\textwidth, about 6.3 in), so
+    the 8-9 pt fonts below land at 8-9 pt on the page instead of being scaled down.
     """
-    with plt.rc_context({"font.size": 13.5, "axes.titlesize": 15.0}):
-        fig, axes = plt.subplots(1, 3, figsize=(13.5, 4.3))
+    rc = {
+        "font.size": 8.5, "axes.titlesize": 9.5, "axes.labelsize": 8.5,
+        "xtick.labelsize": 8, "ytick.labelsize": 8, "legend.fontsize": 8,
+        "figure.titlesize": 10, "lines.markersize": 4, "axes.linewidth": 0.6,
+    }
+    with plt.rc_context(rc):
+        fig, axes = plt.subplots(1, 3, figsize=(6.3, 2.85))
         plot_panel(axes[0], models, lambda r: r["routing"]["pooled"]["kl"],
-                   "Routing KL(gold || candidate)", logy=True)
+                   "Routing KL(gold || candidate)", logy=True, lw_scale=0.55)
         axes[0].set_title("Routing drift")
         plot_panel(axes[1], models, lambda r: r["routing"]["pooled"]["top1_error"],
-                   "Top-1 expert flip rate")
+                   "Top-1 expert flip rate", lw_scale=0.55)
         axes[1].set_title("Top-1 expert changes")
         plot_panel(axes[2], models, lambda r: r["lm"]["perplexity"],
-                   "WikiText-2 perplexity", logy=True)
+                   "WikiText-2 perplexity", logy=True, lw_scale=0.55)
         axes[2].set_title("End-task quality")
 
         handles, labels = axes[0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc="lower center", ncol=4, frameon=False, fontsize=11)
+        # Short model names in the legend; the caption carries the full checkpoint names.
+        for long, brief in {"OLMoE-1B-7B": "OLMoE", "Qwen1.5-MoE-A2.7B": "Qwen"}.items():
+            labels = [label.replace(long, brief) for label in labels]
+        fig.legend(handles, labels, loc="lower center", ncol=4, frameon=False,
+                   columnspacing=1.2, handlelength=2.0, handletextpad=0.5)
         fig.suptitle("Protecting the router alone, across two MoE architectures")
-        fig.tight_layout(rect=(0, 0.16, 1, 1))
+        fig.tight_layout(rect=(0, 0.17, 1, 0.95))
         fig.savefig(out_pdf)
         plt.close(fig)
 
